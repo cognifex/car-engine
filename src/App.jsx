@@ -139,7 +139,7 @@ export default function AutoMatchPrototype() {
         const res = await fetch('/api/hot-offers');
         if (!res.ok) return;
         const data = await res.json();
-        const offersSafe = (data.offers || []).filter(o => o.image_url);
+        const offersSafe = data.offers || [];
         setOffers(offersSafe);
         setDefinition("");
         setOffersUpdatedAt(new Date().toISOString());
