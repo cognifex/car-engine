@@ -27,7 +27,7 @@ const ensureCacheDir = async () => {
   }
 };
 
-const readDB = async () => {
+export const readOffersDB = async () => {
   try {
     const raw = await fs.readFile(DB_PATH, "utf8");
     const parsed = JSON.parse(raw || "[]");
@@ -203,7 +203,7 @@ export const fetchApifyMobileListings = async (params: {
       }
       // append to offers DB
       try {
-        const db = await readDB();
+        const db = await readOffersDB();
         const merged = [...db, ...stampedNormalized];
         await writeDB(merged);
       } catch (err) {

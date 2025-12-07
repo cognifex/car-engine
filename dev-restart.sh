@@ -14,6 +14,13 @@ use_node() {
     . "$HOME/.nvm/nvm.sh"
     nvm use 20 >/dev/null 2>&1 || nvm use --lts >/dev/null 2>&1 || true
   fi
+
+  if ! command -v node >/dev/null 2>&1; then
+    # Fallback to Windows Node when running inside WSL.
+    if [ -x "/mnt/c/Program Files/nodejs/node.exe" ]; then
+      export PATH="/mnt/c/Program Files/nodejs:$PATH"
+    fi
+  fi
 }
 
 stop_existing() {

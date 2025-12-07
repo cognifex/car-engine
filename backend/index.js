@@ -103,8 +103,9 @@ app.get('/api/hot-offers', async (req, res) => {
     hotCache = { ts: now, offers };
     if (offers.length === 0) {
       // Try disk DB fallback
-      const db = await (await import(pathToFileURL(apifyModulePath).href)).readDB?.().catch(() => []) || [];
-      const fallback = Array.isArray(db) ? db.slice(-3) : [];
+      const dbModule = await import(pathToFileURL(apifyModulePath).href);
+      const db = await dbModule.readOffersDB?.().catch(() => []) || [];
+      const fallback = Array.isArray(db) ? db.slice(-3).reverse() : [];
       return res.json({ offers: fallback });
     }
     res.json({ offers: offers.slice(0, 3) });
