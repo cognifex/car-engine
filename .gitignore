@@ -1,0 +1,26 @@
+# Node / tooling
+node_modules/
+backend/node_modules/
+automatch-ai/node_modules/
+.cache/
+automatch-ai/.cache/
+
+# Env and secrets
+.env
+backend/.env
+automatch-ai/.env
+
+# Logs and runtime
+backend.log
+frontend.log
+*.log
+
+# Build outputs
+dist/
+automatch-ai/dist/
+
+# Local tooling / OS
+.DS_Store
+.local/
+*.pid
+

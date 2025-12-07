@@ -1,0 +1,687 @@
+{
+  "generatedAt": "2025-12-07T13:16:59.213Z",
+  "runs": [
+    {
+      "persona": "BudgetKombiDE",
+      "turns": [
+        {
+          "user": "Hi, ich brauche ein günstiges Auto, manchmal mit Platz für größere Sachen.",
+          "assistant": "Ich empfehle dir den Volkswagen Tiguan, der viel Platz für größere Dinge bietet und in verschiedenen Preisklassen erhältlich ist. Schau dir die passenden Angebote und Bilder an, die rechts erscheinen. Hast du ein grobes Budget im Kopf?",
+          "offers": [
+            {
+              "title": "2013 Volkswagen Tiguan S",
+              "model": "Tiguan",
+              "price": 7995,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Portland, OR",
+              "mileage": "",
+              "badge": "",
+              "vin": "WVGAV3AX0DW562143"
+            },
+            {
+              "title": "2014 Volkswagen Tiguan S",
+              "model": "Tiguan",
+              "price": 4900,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Fort Walton Beach, FL",
+              "mileage": "",
+              "badge": "",
+              "vin": "WVGAV3AX0EW521111"
+            },
+            {
+              "title": "2013 Volkswagen Tiguan S",
+              "model": "Tiguan",
+              "price": 5995,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Lynnwood, WA",
+              "mileage": "",
+              "badge": "",
+              "vin": "WVGAV3AX1DW580960"
+            },
+            {
+              "title": "2013 Volkswagen Tiguan S",
+              "model": "Tiguan",
+              "price": 11990,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Richmond, VA",
+              "mileage": "",
+              "badge": "",
+              "vin": "WVGAV3AX1DW619689"
+            },
+            {
+              "title": "2014 Volkswagen Tiguan SE",
+              "model": "Tiguan",
+              "price": 6990,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Pompano Beach, FL",
+              "mileage": "",
+              "badge": "",
+              "vin": "WVGAV3AX1EW617071"
+            }
+          ],
+          "visuals": [
+            "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1441148345475-03a80a5f639c?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1511910849309-0e2f7e302b21?auto=format&fit=crop&w=600&q=80"
+          ],
+          "issues": [
+            "WORD_LIMIT",
+            "MISSING_IMAGE"
+          ],
+          "judge": {
+            "score": 0.5,
+            "reason": "Die Antwort ist relevant, da der Volkswagen Tiguan ein Kombi/SUV ist, der Platz bietet. Allerdings fehlt eine direkte Ansprache des Budgets und der Hinweis auf Gebrauchtwagen. Der Fortschritt ist begrenzt, da keine konkreten Angebote oder Preisinformationen gegeben werden."
+          }
+        },
+        {
+          "user": "Ich habe ein Budget von 10-15k, am liebsten einen Kombi oder SUV.",
+          "assistant": "Mit deinem Budget von 10-15k sind der Skoda Octavia Combi und der Dacia Duster gute Optionen. Schau dir die Angebote und Bilder rechts an, um mehr zu erfahren. Hast du eine Präferenz für einen bestimmten Hersteller oder eine Ausstattung?",
+          "offers": [
+            {
+              "title": "Skoda Kompaktwagen",
+              "model": "Octavia Combi",
+              "price": 14900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/kompakt",
+              "image_url": "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "39.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Skoda SUV",
+              "model": "Octavia Combi",
+              "price": 19900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/suv",
+              "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "48.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Skoda Stadtauto",
+              "model": "Octavia Combi",
+              "price": 9900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/stadt",
+              "image_url": "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "62.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            }
+          ],
+          "visuals": [
+            "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1441148345475-03a80a5f639c?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1511910849309-0e2f7e302b21?auto=format&fit=crop&w=600&q=80"
+          ],
+          "issues": [
+            "WORD_LIMIT",
+            "MISSING_VIN"
+          ],
+          "judge": {
+            "score": 0.8,
+            "reason": "Der Gesprächsverlauf ist relevant und klar, da er auf die Bedürfnisse des Käufers eingeht und passende Optionen vorschlägt. Der Fortschritt in Richtung geeigneter Autos ist gegeben, da konkrete Modelle genannt werden. Der Ton ist freundlich und hilfsbereit."
+          }
+        },
+        {
+          "user": "Ich bevorzuge einen Skoda, die sind oft zuverlässig und haben viel Platz.",
+          "assistant": "Der Skoda Octavia Combi ist eine hervorragende Wahl, da er viel Platz bietet und in deinem Budget von 10-15k erhältlich ist. Schau dir die Angebote und Bilder rechts an, um mehr zu erfahren. Möchtest du mehr über die Ausstattung oder die Verfügbarkeit der Modelle wissen?",
+          "offers": [
+            {
+              "title": "Skoda Kompaktwagen",
+              "model": "Octavia Combi",
+              "price": 14900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/kompakt",
+              "image_url": "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "39.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Skoda SUV",
+              "model": "Octavia Combi",
+              "price": 19900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/suv",
+              "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "48.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Skoda Stadtauto",
+              "model": "Octavia Combi",
+              "price": 9900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/stadt",
+              "image_url": "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "62.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            }
+          ],
+          "visuals": [
+            "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1441148345475-03a80a5f639c?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1511910849309-0e2f7e302b21?auto=format&fit=crop&w=600&q=80"
+          ],
+          "issues": [
+            "WORD_LIMIT",
+            "MISSING_VIN"
+          ],
+          "judge": {
+            "score": 0.8,
+            "reason": "Der Gesprächsverlauf ist relevant und klar, da der Käufer spezifische Anforderungen hat und passende Optionen vorgeschlagen werden. Der Fortschritt in Richtung geeigneter Autos ist gegeben, da konkrete Modelle genannt werden. Der Ton ist freundlich und informativ."
+          }
+        },
+        {
+          "user": "Ich schaue mir die Angebote an. Danke für den Hinweis!",
+          "assistant": "Es freut mich, dass du dir die Angebote anschaust! Der Skoda Octavia Combi, Superb Combi und Kodiaq sind tolle Optionen für dein Budget und Platzbedarf. Die passenden Angebote und Bilder findest du rechts.",
+          "offers": [
+            {
+              "title": "Skoda Kompaktwagen",
+              "model": "Octavia Combi",
+              "price": 14900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/kompakt",
+              "image_url": "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "39.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Skoda SUV",
+              "model": "Octavia Combi",
+              "price": 19900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/suv",
+              "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "48.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Skoda Stadtauto",
+              "model": "Octavia Combi",
+              "price": 9900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/stadt",
+              "image_url": "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "62.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            }
+          ],
+          "visuals": [
+            "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1441148345475-03a80a5f639c?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1511910849309-0e2f7e302b21?auto=format&fit=crop&w=600&q=80"
+          ],
+          "issues": [
+            "MISSING_VIN"
+          ],
+          "judge": {
+            "score": 0.8,
+            "reason": "Der Gesprächsverlauf ist relevant und klar, da er auf die Bedürfnisse des Käufers eingeht und passende Optionen vorschlägt. Der Fortschritt in Richtung geeigneter Autos ist gegeben, da konkrete Modelle genannt werden. Der Ton ist freundlich und hilfsbereit."
+          }
+        }
+      ]
+    },
+    {
+      "persona": "CityEV",
+      "turns": [
+        {
+          "user": "Hallo, überlege ein Elektroauto für die Stadt. Keine Ahnung, was passt.",
+          "assistant": "Für die Stadt sind kleine Elektroautos wie der Renault Zoe oder der Mini Electric ideal, da sie wendig sind und eine gute Reichweite bieten. Schau dir die passenden Angebote und Bilder an, die hier erscheinen. Hast du ein ungefähres Budget im Kopf?",
+          "offers": [],
+          "visuals": [
+            "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1441148345475-03a80a5f639c?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1511910849309-0e2f7e302b21?auto=format&fit=crop&w=600&q=80"
+          ],
+          "issues": [
+            "WORD_LIMIT",
+            "NO_OFFERS"
+          ],
+          "judge": {
+            "score": 0.5,
+            "reason": "Die Antwort bietet einige relevante Informationen zu geeigneten Elektroautos, jedoch fehlt es an Klarheit und konkreten Angeboten. Der Fortschritt in Richtung einer passenden Auswahl ist minimal, und der Ton ist neutral, aber nicht besonders einladend."
+          }
+        },
+        {
+          "user": "Ich habe ein Budget von 20-30k. Was empfehlst du?",
+          "assistant": "Mit deinem Budget von 20-30k empfehle ich den Renault Zoe, Mini Electric oder Fiat 500e, die alle ideal für die Stadt sind. Schau dir die passenden Angebote und Bilder an, die hier erscheinen.",
+          "offers": [
+            {
+              "title": "Renault Kompaktwagen",
+              "model": "Zoe",
+              "price": 14900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/kompakt",
+              "image_url": "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "39.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Renault SUV",
+              "model": "Zoe",
+              "price": 19900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/suv",
+              "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "48.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Renault Stadtauto",
+              "model": "Zoe",
+              "price": 9900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/stadt",
+              "image_url": "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "62.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            }
+          ],
+          "visuals": [
+            "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1441148345475-03a80a5f639c?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1511910849309-0e2f7e302b21?auto=format&fit=crop&w=600&q=80"
+          ],
+          "issues": [
+            "MISSING_VIN"
+          ],
+          "judge": {
+            "score": 0.8,
+            "reason": "Der Gesprächsverlauf ist relevant und klar, bietet passende Empfehlungen für das Budget und die Bedürfnisse des Stadtfahrers. Der Fortschritt in Richtung geeigneter Autos ist gegeben, jedoch könnte der Ton etwas einladender und unterstützender sein."
+          }
+        },
+        {
+          "user": "Danke, das hilft! Wo finde ich die besten Angebote für diese Modelle?",
+          "assistant": "Die besten Angebote für den Renault Zoe und ähnliche Modelle findest du online. Schau dir die Links zu den Angeboten an, die hier erscheinen, um mehr Informationen zu erhalten. Hast du eine bevorzugte Marke oder ein bestimmtes Modell im Kopf?",
+          "offers": [
+            {
+              "title": "Renault Kompaktwagen",
+              "model": "Zoe",
+              "price": 14900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/kompakt",
+              "image_url": "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "39.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Renault SUV",
+              "model": "Zoe",
+              "price": 19900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/suv",
+              "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "48.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Renault Stadtauto",
+              "model": "Zoe",
+              "price": 9900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/stadt",
+              "image_url": "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "62.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            }
+          ],
+          "visuals": [
+            "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1441148345475-03a80a5f639c?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1511910849309-0e2f7e302b21?auto=format&fit=crop&w=600&q=80"
+          ],
+          "issues": [
+            "WORD_LIMIT",
+            "MISSING_VIN"
+          ],
+          "judge": {
+            "score": 0.8,
+            "reason": "Der Gesprächsverlauf ist insgesamt positiv, da der Nutzer hilfreiche Informationen zu passenden Elektroautos erhält und sein Budget klar kommuniziert. Die Empfehlungen sind relevant und auf die Bedürfnisse des Stadtfahrers zugeschnitten. Der Ton ist freundlich und unterstützend, jedoch könnte die Klarheit durch spezifischere Informationen zu den Angeboten verbessert werden."
+          }
+        },
+        {
+          "user": "Ich schaue mir mal die Links an, danke!",
+          "assistant": "Gern geschehen! Die Links zu den besten Angeboten für den Renault Zoe und ähnliche Modelle sind hier zu finden. Wenn du weitere Fragen hast oder mehr Informationen benötigst, lass es mich wissen.",
+          "offers": [
+            {
+              "title": "Renault Kompaktwagen",
+              "model": "Zoe",
+              "price": 14900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/kompakt",
+              "image_url": "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "39.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Renault SUV",
+              "model": "Zoe",
+              "price": 19900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/suv",
+              "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "48.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Renault Stadtauto",
+              "model": "Zoe",
+              "price": 9900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/stadt",
+              "image_url": "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "62.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            }
+          ],
+          "visuals": [
+            "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1441148345475-03a80a5f639c?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1511910849309-0e2f7e302b21?auto=format&fit=crop&w=600&q=80"
+          ],
+          "issues": [
+            "MISSING_VIN"
+          ],
+          "judge": {
+            "score": 0.8,
+            "reason": "Der Gesprächsverlauf ist insgesamt positiv, da der Nutzer hilfreiche Informationen zu passenden Elektroautos erhält und sein Budget klar kommuniziert. Die Empfehlungen sind relevant und auf die Bedürfnisse des Stadtfahrers zugeschnitten. Der Ton ist freundlich und unterstützend, jedoch könnte die Klarheit durch spezifischere Informationen zu den Modellen und deren Vorzügen verbessert werden. Der Fortschritt in Richtung einer Kaufentscheidung ist gegeben, da der Nutzer aktiv nach Angeboten fragt."
+          }
+        }
+      ]
+    },
+    {
+      "persona": "ErstesAuto",
+      "turns": [
+        {
+          "user": "Hi, suche mein erstes Auto, nicht zu teuer.",
+          "assistant": "Für dein erstes Auto empfehle ich den Skoda Fabia, Dacia Sandero oder Toyota Aygo, die alle günstig im Unterhalt sind. Schau dir die passenden Angebote und Bilder rechts an. Hast du eine bevorzugte Marke oder spezielle Anforderungen an das Auto?",
+          "offers": [
+            {
+              "title": "Skoda Kompaktwagen",
+              "model": "Fabia",
+              "price": 14900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/kompakt",
+              "image_url": "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "39.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Skoda SUV",
+              "model": "Fabia",
+              "price": 19900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/suv",
+              "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "48.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            },
+            {
+              "title": "Skoda Stadtauto",
+              "model": "Fabia",
+              "price": 9900,
+              "dealer": "AutoMatch Beispielhändler",
+              "link": "https://www.example.com/stadt",
+              "image_url": "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+              "location": "Online",
+              "mileage": "62.000 km",
+              "badge": "Gebraucht",
+              "vin": ""
+            }
+          ],
+          "visuals": [
+            "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1441148345475-03a80a5f639c?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1511910849309-0e2f7e302b21?auto=format&fit=crop&w=600&q=80"
+          ],
+          "issues": [
+            "WORD_LIMIT",
+            "MISSING_VIN"
+          ],
+          "judge": {
+            "score": 0.7,
+            "reason": "Die Antwort ist relevant und bietet konkrete Vorschläge, jedoch könnte sie klarer und einladender formuliert sein, um die Unsicherheit des Nutzers besser zu adressieren."
+          }
+        },
+        {
+          "user": "Danke! Ich mag Toyota. Wie sieht's mit der Versicherung aus?",
+          "assistant": "Die Versicherung für einen Toyota hängt vom Modell und deinem Fahrverhalten ab. Generell sind Toyota-Modelle zuverlässig, was die Kosten oft senken kann. Schau dir die passenden Angebote rechts an. Hast du ein bestimmtes Modell im Kopf oder ein Budget für die Versicherung?",
+          "offers": [],
+          "visuals": [],
+          "issues": [
+            "WORD_LIMIT",
+            "NO_OFFERS"
+          ],
+          "judge": {
+            "score": 0.5,
+            "reason": "Die Antworten sind teilweise relevant und klar, jedoch fehlt es an konkreten Vorschlägen und Fortschritt in der Suche nach einem passenden Auto. Der Ton ist freundlich, aber es könnte mehr Unterstützung und spezifische Hinweise geben."
+          }
+        },
+        {
+          "user": "Ich denke an einen gebrauchten Toyota Yaris. Was kostet die Versicherung ungefähr?",
+          "assistant": "Die Versicherung für einen gebrauchten Toyota Yaris liegt oft zwischen 400 und 800 Euro im Jahr, abhängig von deinem Fahrverhalten und der Region. Schau dir die passenden Angebote und Bilder rechts an. Hast du ein bestimmtes Budget für den Kauf des Yaris?",
+          "offers": [
+            {
+              "title": "2012 Toyota Yaris Fleet",
+              "model": "Yaris",
+              "price": 7995,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Patchogue, NY",
+              "mileage": "",
+              "badge": "",
+              "vin": "JTDBT4K35CL011187"
+            },
+            {
+              "title": "2010 Toyota Yaris",
+              "model": "Yaris",
+              "price": 7295,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "West Chester, PA",
+              "mileage": "",
+              "badge": "",
+              "vin": "JTDBT4K36A4079019"
+            },
+            {
+              "title": "2010 Toyota Yaris",
+              "model": "Yaris",
+              "price": 7950,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Wrightsville, PA",
+              "mileage": "",
+              "badge": "",
+              "vin": "JTDBT4K37A4076534"
+            },
+            {
+              "title": "2012 Toyota Yaris Fleet",
+              "model": "Yaris",
+              "price": 8999,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Jamaica, NY",
+              "mileage": "",
+              "badge": "",
+              "vin": "JTDBT4K38C1417542"
+            },
+            {
+              "title": "2010 Toyota Yaris",
+              "model": "Yaris",
+              "price": 7995,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Marlborough, MA",
+              "mileage": "",
+              "badge": "",
+              "vin": "JTDBT4K39A1394866"
+            }
+          ],
+          "visuals": [
+            "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1441148345475-03a80a5f639c?auto=format&fit=crop&w=600&q=80",
+            "https://images.unsplash.com/photo-1511910849309-0e2f7e302b21?auto=format&fit=crop&w=600&q=80"
+          ],
+          "issues": [
+            "WORD_LIMIT",
+            "MISSING_IMAGE"
+          ],
+          "judge": {
+            "score": 0.8,
+            "reason": "Der Gesprächsverlauf ist relevant und klar, da er auf die Bedürfnisse des Nutzers eingeht und hilfreiche Informationen zu Autos und Versicherungen bietet. Der Ton ist freundlich und unterstützend, was für eine junge, unsichere Person angenehm ist. Es gibt jedoch Raum für mehr spezifische Hinweise oder Tipps, um den Nutzer weiter zu unterstützen."
+          }
+        },
+        {
+          "user": "Mein Budget für den Yaris liegt bei etwa 7.000 Euro. Welche Angebote hast du?",
+          "assistant": "Ich habe einige Angebote für den Toyota Yaris in deinem Budget von 7.000 Euro. Zum Beispiel gibt es einen 2009 Toyota Yaris für 4.995 Euro in Hamilton, NJ. Weitere Details und Bilder findest du rechts. Möchtest du mehr Informationen zu einem bestimmten Angebot oder weitere Optionen?",
+          "offers": [
+            {
+              "title": "2010 Toyota Yaris",
+              "model": "Yaris",
+              "price": 5700,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Bridgewater, MA",
+              "mileage": "",
+              "badge": "",
+              "vin": "JTDBT4K39A4076583"
+            },
+            {
+              "title": "2009 Toyota Yaris S",
+              "model": "Yaris",
+              "price": 4995,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Hamilton, NJ",
+              "mileage": "",
+              "badge": "",
+              "vin": "JTDBT903294052024"
+            },
+            {
+              "title": "2009 Toyota Yaris",
+              "model": "Yaris",
+              "price": 6998,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Lititz, PA",
+              "mileage": "",
+              "badge": "",
+              "vin": "JTDBT903391343732"
+            },
+            {
+              "title": "2009 Toyota Yaris S",
+              "model": "Yaris",
+              "price": 4900,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Pen Argyl, PA",
+              "mileage": "",
+              "badge": "",
+              "vin": "JTDBT903691346026"
+            },
+            {
+              "title": "2007 Toyota Yaris S",
+              "model": "Yaris",
+              "price": 4800,
+              "dealer": "",
+              "link": "",
+              "image_url": "",
+              "location": "Springfield, MA",
+              "mileage": "",
+              "badge": "",
+              "vin": "JTDBT923771116456"
+            }
+          ],
+          "visuals": [],
+          "issues": [
+            "WORD_LIMIT",
+            "MISSING_IMAGE"
+          ],
+          "judge": {
+            "score": 0.8,
+            "reason": "Der Gesprächsverlauf ist relevant und klar, bietet hilfreiche Informationen zu Autos und Versicherungen. Der Fortschritt in Richtung passender Autos ist gut, da konkrete Angebote genannt werden. Der Ton ist freundlich und unterstützend, was für die Zielgruppe angenehm ist."
+          }
+        }
+      ]
+    }
+  ]
+}

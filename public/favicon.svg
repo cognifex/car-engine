@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="AutoMatch AI">
+  <defs>
+    <linearGradient id="body" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="12" fill="#0b172a"/>
+  <path d="M14 38c1-8 4-13 9-15h16c5 2 8 7 9 15h-34z" fill="url(#body)"/>
+  <path d="M14 38h36v5c0 2-2 4-4 4H18c-2 0-4-2-4-4v-5z" fill="#e0f2fe"/>
+  <circle cx="22" cy="43" r="5" fill="#0f172a"/>
+  <circle cx="42" cy="43" r="5" fill="#0f172a"/>
+  <circle cx="22" cy="43" r="2.5" fill="#e2e8f0"/>
+  <circle cx="42" cy="43" r="2.5" fill="#e2e8f0"/>
+  <path d="M25 26h14c1 0 2 1 2 2v4H23v-4c0-1 1-2 2-2z" fill="#e0f2fe"/>
+  <path d="M18 34h28" stroke="#bae6fd" stroke-width="2" stroke-linecap="round"/>
+</svg>
