@@ -27,17 +27,18 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST '
             set -euo pipefail
+
             cd /opt/car-engine
 
-            echo "📥 Pulling latest code from GitHub..."
+            echo "📥 Pulling latest code..."
             git fetch origin main
             git reset --hard origin/main
 
             echo "🔐 Writing environment variables..."
-            cat > .env.backend <<EOF
-APIFY_TOKEN='"$APIFY_TOKEN"'
-OPENAI_API_KEY='"$OPENAI_API_KEY"'
-PROXY_URL='"$PROXY_URL"'
+            cat > .env.backend << "EOF"
+APIFY_TOKEN=${APIFY_TOKEN}
+OPENAI_API_KEY=${OPENAI_API_KEY}
+PROXY_URL=${PROXY_URL}
 EOF
 
             echo "🐳 Rebuilding Docker Compose..."
