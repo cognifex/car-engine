@@ -8,8 +8,10 @@ import fs from 'fs';
 // Resolve __dirname for ES modules
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Load environment variables from the backend folder regardless of where the server is started
+// Load environment variables from multiple likely locations
 dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '.env.backend') });
 
 const app = express();
 const port = process.env.PORT || 3001;

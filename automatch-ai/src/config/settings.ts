@@ -14,6 +14,18 @@ if (!process.env.OPENAI_API_KEY) {
   dotenv.config({ path: backendEnv });
 }
 
+// Fallback: try repo root .env or .env.backend (used in CI/CD)
+if (!process.env.OPENAI_API_KEY) {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const rootEnv = path.resolve(__dirname, "..", "..", "..", ".env");
+  const rootEnvBackend = path.resolve(__dirname, "..", "..", "..", ".env.backend");
+  dotenv.config({ path: rootEnv });
+  if (!process.env.OPENAI_API_KEY) {
+    dotenv.config({ path: rootEnvBackend });
+  }
+}
+
 const settingsSchema = z.object({
   OPENAI_API_KEY: z.string().min(1, "OPENAI_API_KEY is required"),
   OPENAI_MODEL: z.string().default("gpt-4o-mini"),
