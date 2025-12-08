@@ -17,11 +17,21 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
 
-      - name: Deploy to VPS
+      - name: Create .env.backend file
+        run: |
+          echo "APIFY_TOKEN=${{ secrets.APIFY_TOKEN }}" > .env.backend
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env.backend
+          echo "PROXY_URL=${{ secrets.PROXY_URL }}" >> .env.backend
+
+      - name: Upload .env.backend to VPS
         env:
-          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          PROXY_URL: ${{ secrets.PROXY_URL }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          scp -o StrictHostKeyChecking=no .env.backend $VPS_USER@$VPS_HOST:/opt/car-engine/.env.backend
+
+      - name: Deploy via SSH
+        env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
@@ -34,19 +44,12 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            echo "🔐 Writing environment variables..."
-            cat > .env.backend << "EOF"
-APIFY_TOKEN=${APIFY_TOKEN}
-OPENAI_API_KEY=${OPENAI_API_KEY}
-PROXY_URL=${PROXY_URL}
-EOF
-
             echo "🐳 Rebuilding Docker Compose..."
             docker compose pull || true
             docker compose down
             docker compose up -d --build
 
-            echo "🧹 Cleanup unused Docker images..."
+            echo "🧹 Cleanup docker images..."
             docker image prune -f
 
             echo "🚀 Deployment complete!"
