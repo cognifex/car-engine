@@ -87,6 +87,17 @@ export const fetchApifyMobileListings = async (params: {
   maxItems?: number;
   maxPrice?: number;
 }): Promise<ReturnType<typeof OfferType.parse>[]> => {
+  const stamp = () => new Date().toISOString();
+  const withDefaults = (o: any) => ({
+    ...o,
+    created_at: o.created_at || stamp(),
+    isOffroadRelevant: Boolean(o.isOffroadRelevant),
+    isExactMatchToSuggestion: Boolean(o.isExactMatchToSuggestion),
+    relevanceScore: Number(o.relevanceScore ?? 0),
+    source: o.source || "apify",
+    fallbackReason: o.fallbackReason || "",
+  });
+
   const token = settings.APIFY_TOKEN;
   if (!token) {
     logger.warn("APIFY_TOKEN not set; skipping Apify listings");
@@ -112,7 +123,7 @@ export const fetchApifyMobileListings = async (params: {
   const cached = apifyCache.get(cacheKey);
   if (cached && now - cached.ts < APIFY_CACHE_TTL_MS) {
     logger.info({ cacheKey }, "Returning cached Apify listings");
-    return cached.offers;
+    return (cached.offers || []).map(withDefaults);
   }
   // disk cache fallback
   try {
@@ -122,7 +133,7 @@ export const fetchApifyMobileListings = async (params: {
     if (diskEntry && now - diskEntry.ts < DISK_CACHE_TTL_MS) {
       logger.info({ cacheKey }, "Returning disk-cached Apify listings");
       apifyCache.set(cacheKey, diskEntry);
-      return diskEntry.offers;
+      return (diskEntry.offers || []).map(withDefaults);
     }
   } catch {
     // ignore
@@ -191,7 +202,7 @@ export const fetchApifyMobileListings = async (params: {
       .filter(o => OfferType.safeParse(o).success)
       // Do not drop offers by price; the caller can trim later. Filtering too aggressively caused empty results.
       .sort((a, b) => (a.price || 0) - (b.price || 0));
-    const stampedNormalized = normalized.map(o => ({ ...o, created_at: new Date().toISOString() }));
+    const stampedNormalized = normalized.map(o => withDefaults({ ...o, created_at: stamp() }));
 
     logger.info({ count: normalized.length }, "Apify mobile.de listings normalized");
     if (stampedNormalized.length > 0) {
@@ -225,7 +236,7 @@ export const fetchApifyMobileListings = async (params: {
         const diskEntry = parsed[cacheKey];
         if (diskEntry && now - diskEntry.ts < DISK_CACHE_TTL_MS) {
           logger.warn({ cacheKey }, "Apify empty; returning disk cache");
-          return diskEntry.offers;
+          return (diskEntry.offers || []).map(withDefaults);
         }
       } catch {
         // ignore
@@ -236,7 +247,7 @@ export const fetchApifyMobileListings = async (params: {
     logger.error({ err: error?.message || error }, "Failed to fetch Apify mobile.de listings");
     if (cached) {
       logger.warn({ cacheKey }, "Returning cached Apify offers after error");
-      return cached.offers;
+      return (cached.offers || []).map(withDefaults);
     }
     try {
       const raw = await fs.readFile(DISK_CACHE, "utf8");
@@ -244,7 +255,7 @@ export const fetchApifyMobileListings = async (params: {
       const diskEntry = parsed[cacheKey];
       if (diskEntry && now - diskEntry.ts < DISK_CACHE_TTL_MS) {
         logger.warn({ cacheKey }, "Returning disk cache after error");
-        return diskEntry.offers;
+        return (diskEntry.offers || []).map(withDefaults);
       }
     } catch {
       // ignore
