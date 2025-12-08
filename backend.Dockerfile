@@ -28,6 +28,8 @@ COPY --from=builder /app/backend ./backend
 
 # Copy compiled automatch-ai code
 COPY --from=builder /app/automatch-ai/dist ./automatch-ai/dist
+# Copy runtime data needed by automatch-ai (specs/offers)
+COPY automatch-ai/data ./automatch-ai/data
 
 WORKDIR /app/backend
 ENV NODE_ENV=production
