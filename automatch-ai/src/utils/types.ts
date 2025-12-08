@@ -24,6 +24,8 @@ export const intentSchema = z.object({
     "budget_info",
     "car_search",
     "explanation_request",
+    "refine_requirements",
+    "dissatisfaction",
     "unknown",
   ]),
   fields: z.array(
@@ -67,6 +69,8 @@ export const routeSchema = z.object({
   includeVisuals: z.boolean(),
   includeMatching: z.boolean(),
   includeOffers: z.boolean(),
+  strictOffers: z.boolean().default(false),
+  retryMatching: z.boolean().default(false),
 });
 export type RouteDecision = z.infer<typeof routeSchema>;
 
@@ -80,6 +84,12 @@ export const perfectProfileSchema = z.object({
   constraints: z.array(z.string()).default([]),
   knowledge_level: z.enum(["low", "medium", "high"]).default("medium"),
   confidence: z.enum(["low", "medium", "high"]).default("medium"),
+  terrain: z.string().default(""),
+  drivetrain: z.string().default(""),
+  bodyTypePreference: z.string().default(""),
+  robustness: z.string().default(""),
+  use_case: z.string().default(""),
+  offroadPriority: z.boolean().default(false),
 });
 export type PerfectProfile = z.infer<typeof perfectProfileSchema>;
 
@@ -95,6 +105,11 @@ export const OfferType = z.object({
   badge: z.string().default(""),
   created_at: z.string().default(""),
   vin: z.string().default(""),
+  isOffroadRelevant: z.boolean().default(false),
+  isExactMatchToSuggestion: z.boolean().default(false),
+  relevanceScore: z.number().default(0),
+  source: z.string().default(""),
+  fallbackReason: z.string().default(""),
 });
 export type Offer = z.infer<typeof OfferType>;
 
@@ -106,6 +121,28 @@ export const contentSchema = z.object({
   offers: z.array(OfferType).default([]),
   visuals: z.array(z.string()).default([]),
   definition: z.string().default(""),
+  matches: matchSchema.optional(),
+  profile: perfectProfileSchema.optional(),
+  offerDiagnostics: z
+    .object({
+      queryModels: z.array(z.string()).default([]),
+      offroadRequired: z.boolean().default(false),
+      fallbackUsed: z.boolean().default(false),
+      noRelevantOffers: z.boolean().default(false),
+      strategy: z.string().default(""),
+      failureCount: z.number().default(0),
+      relevance: z
+        .array(
+          z.object({
+            model: z.string().default(""),
+            isOffroadRelevant: z.boolean().default(false),
+            isExactMatchToSuggestion: z.boolean().default(false),
+            relevanceScore: z.number().default(0),
+          })
+        )
+        .default([]),
+    })
+    .optional(),
 });
 export type ContentPayload = z.infer<typeof contentSchema>;
 
@@ -122,5 +159,7 @@ export interface ConversationState {
   offers?: Offer[];
   content?: ContentPayload;
    profile?: PerfectProfile;
+  offersMeta?: Record<string, unknown>;
+  offerSearchState?: { failureCount?: number; lastStrategy?: string };
   debugLogs?: AgentLogEntry[];
 }

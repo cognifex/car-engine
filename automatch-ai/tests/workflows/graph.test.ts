@@ -28,4 +28,25 @@ describe("graph workflow", () => {
     expect(result.response?.reply).toContain("Empfehlung");
     expect(result.matches?.suggestions).toHaveLength(1);
   });
+
+  it("enforces strict routing when user is dissatisfied", async () => {
+    const stubs = {
+      profiling: makeStubAgent({ knowledge_level: "low", confidence: "low", tone: "casual" }),
+      intent: makeStubAgent({ intent: "dissatisfaction", fields: [] }),
+      router: makeStubAgent({ includeKnowledge: false, includeVisuals: false, includeMatching: false, includeOffers: true, strictOffers: false, retryMatching: false }),
+      knowledge: makeStubAgent({ explanation: "" }),
+      profileBuilder: makeStubAgent({ budget: "", usage: "", passengers: "", experience: "", segmentPrefs: [], powertrainPrefs: [], constraints: [], knowledge_level: "low", confidence: "low" }),
+      visual: makeStubAgent({ image_urls: [] }),
+      matching: makeStubAgent({ suggestions: [{ model: "RAV4", category: "SUV", reason: "Offroad" }] }),
+      offers: makeStubAgent({ offers: [], meta: { strategy: "test" }, nextSearchState: { failureCount: 0 } }),
+      front: makeStubAgent({ reply: "Ich schärfe die Filter.", followUp: "" }),
+    } as any;
+
+    const graph = buildGraph(stubs);
+    const initial: ConversationState = { userMessage: "Das bringt hier nichts, ich brauche einen Offroader" };
+    const result = await graph.invoke(initial as any);
+
+    expect(result.route?.strictOffers).toBe(true);
+    expect(result.route?.retryMatching).toBe(true);
+  });
 });

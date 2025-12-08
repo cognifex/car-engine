@@ -15,7 +15,13 @@ export class VisualAgent extends AgentBase<VisualInput, typeof visualSchema> {
   }
 
   async run(input: VisualInput): Promise<VisualOutput> {
-    // Disable external photo fetch; rely on offer images only
-    return { image_urls: [] };
+    try {
+      const generated = await this.callLLM<VisualOutput>(input);
+      if (generated.image_urls?.length) return generated;
+    } catch {
+      // fall through to placeholder
+    }
+    // Minimal placeholder to satisfy UI while avoiding empty arrays
+    return { image_urls: ["https://via.placeholder.com/640x360?text=Auto"] };
   }
 }

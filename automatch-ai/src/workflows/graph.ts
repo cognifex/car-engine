@@ -37,8 +37,10 @@ export const buildGraph = (agents: AgentBundle) => {
       visuals: null,
       matches: null,
       offers: null,
+      offersMeta: null,
       content: null,
       profile: null,
+      offerSearchState: null,
       response: null,
       debugLogs: null,
     },
@@ -78,11 +80,43 @@ export const buildGraph = (agents: AgentBundle) => {
       history: state.history,
     };
     const output = await agents.router.run(input);
-    // If user asked for retro/oldtimer, force offers on.
     const lowerMsg = (state.userMessage || "").toLowerCase();
     const retroFlag = lowerMsg.includes("retro") || lowerMsg.includes("oldtimer") || lowerMsg.includes("klassik") || lowerMsg.includes("vintage") || lowerMsg.includes("youngtimer");
-    const vagueFlag = (state.intent?.intent === "needs_clarification");
-    const patchedRoute = retroFlag || vagueFlag ? { ...output, includeOffers: true, includeMatching: false } : output;
+    const offroadFlag = lowerMsg.includes("gelände") || lowerMsg.includes("offroad") || (state.intent?.fields || []).some((f: any) => f.key === "use_case" && f.value.toLowerCase().includes("gelände"));
+    const clarificationFlag = state.intent?.intent === "needs_clarification" || state.intent?.intent === "refine_requirements";
+    const dissatisfactionFlag = state.intent?.intent === "dissatisfaction";
+
+    let patchedRoute = { ...output };
+
+    if (clarificationFlag) {
+      patchedRoute = {
+        ...patchedRoute,
+        includeKnowledge: true,
+        includeMatching: true,
+        includeOffers: false,
+        strictOffers: offroadFlag,
+      };
+    }
+
+    if (dissatisfactionFlag) {
+      patchedRoute = {
+        ...patchedRoute,
+        includeKnowledge: true,
+        includeMatching: true,
+        includeOffers: true,
+        strictOffers: true,
+        retryMatching: true,
+      };
+    }
+
+    if (offroadFlag) {
+      patchedRoute = { ...patchedRoute, strictOffers: true };
+    }
+
+    if (retroFlag) {
+      patchedRoute = { ...patchedRoute, includeOffers: true, includeMatching: false };
+    }
+
     return {
       route: patchedRoute,
       ...withLog(state, { agent: "router", input: input as Record<string, unknown>, output: patchedRoute as Record<string, unknown> }),
@@ -157,10 +191,16 @@ export const buildGraph = (agents: AgentBundle) => {
       matchModel,
       userMessage: state.userMessage,
       history: state.history,
+      matches: state.matches,
+      route: state.route,
+      profile: state.profile,
+      offerSearchState: state.offerSearchState,
     };
     const output = await agents.offers.run(input as any);
     return {
       offers: output.offers,
+      offersMeta: output.meta,
+      offerSearchState: output.nextSearchState,
       ...withLog(state, { agent: "offers", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
     };
   });
@@ -169,7 +209,14 @@ export const buildGraph = (agents: AgentBundle) => {
     const visuals = state.visuals?.image_urls || [];
     const offers = state.offers || [];
     const definition = state.knowledge?.explanation || "";
-    const aggregated = aggregateContent({ offers, visuals, knowledgeText: definition });
+    const aggregated = aggregateContent({
+      offers,
+      visuals,
+      knowledgeText: definition,
+      matches: state.matches,
+      profile: state.profile,
+      offersMeta: state.offersMeta,
+    });
     return {
       content: aggregated,
       ...withLog(state, { agent: "contentAggregator", input: { offers, visuals, definition } as Record<string, unknown>, output: aggregated as Record<string, unknown> }),
@@ -186,6 +233,9 @@ export const buildGraph = (agents: AgentBundle) => {
       matches: state.matches,
       offers: state.offers,
       profile: state.profile,
+      offersMeta: state.offersMeta,
+      content: state.content,
+      route: state.route,
       history: state.history,
       debugLogs: state.debugLogs,
     };

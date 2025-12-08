@@ -76,4 +76,23 @@ describe("FrontAgent", () => {
     expect(frontSchema.parse(result)).toBeTruthy();
     expect(result.reply.toLowerCase()).not.toContain("ich suche ein auto");
   });
+
+  it("marks lack of offroad offers and passes consistency to the model", async () => {
+    const reply = "Ich schärfe die Filter und suche Offroader nach.";
+    const agent = makeAgent((messages: any[]) => {
+      const payload = JSON.parse(messages.find((m: any) => m.role === "user")?.content || "{}");
+      expect(payload.consistency.noRelevantOffers).toBe(true);
+      return { reply, followUp: "Darf es auch ein SUV sein?" };
+    });
+
+    const result = await agent.run({
+      message: "Ich will einen richtigen Geländewagen",
+      intent: { intent: "car_search", fields: [{ key: "use_case", value: "geländegängig" }] } as any,
+      offers: [{ title: "Lotus Evora", model: "Lotus Evora", price: 0, dealer: "", link: "", image_url: "", location: "", mileage: "", badge: "", isOffroadRelevant: false, isExactMatchToSuggestion: false, relevanceScore: 0, source: "", fallbackReason: "" }],
+      matches: { suggestions: [{ model: "Duster", category: "SUV", reason: "" }] } as any,
+      profile: { offroadPriority: true, budget: "", usage: "", passengers: "", experience: "", segmentPrefs: [], powertrainPrefs: [], constraints: [], knowledge_level: "medium", confidence: "medium", terrain: "", drivetrain: "", bodyTypePreference: "", robustness: "", use_case: "" },
+    });
+
+    expect(result.reply).toContain("Filter");
+  });
 });
