@@ -9,6 +9,8 @@ import { fileURLToPath } from "url";
 const APIFY_ACTOR = "lexis-solutions~mobile-de-auto-scraper";
 const APIFY_CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const DISK_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24h
+const APIFY_TIMEOUT_MS = 45 * 1000; // bail out quickly to avoid blocking chat
+const APIFY_WAIT_SECS = 120; // hard cap for waitForFinish
 const DB_MAX_ITEMS = 500;
 
 type CacheKey = string;
@@ -136,14 +138,22 @@ export const fetchApifyMobileListings = async (params: {
     logger.info({ brand, model, maxItems: input.maxItems }, "Fetching mobile.de listings via Apify");
 
     const start = Date.now();
-    const run = await client.actor(APIFY_ACTOR).call(input, {
-      waitSecs: 30,
-      // memoryMbytes is not in types; cast to any to request lower memory
-      memoryMbytes: 1024,
-    } as any);
-    const items = (await client.dataset(run.defaultDatasetId).listItems()).items || [];
+    const runPromise = (async () => {
+      const started = await client.actor(APIFY_ACTOR).start(input);
+      const finished = await client.run(started.id).waitForFinish({ waitSecs: APIFY_WAIT_SECS });
+      const datasetId = finished?.defaultDatasetId || started.defaultDatasetId;
+      const items = datasetId ? (await client.dataset(datasetId).listItems()).items || [] : [];
+      return { items, status: finished?.status };
+    })();
+
+    const withTimeout = await Promise.race([
+      runPromise,
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Apify timeout")), APIFY_TIMEOUT_MS)),
+    ]);
+
+    const items = withTimeout.items || [];
     const duration = Date.now() - start;
-    logger.info({ count: items.length, ms: duration }, "Apify mobile.de listings fetched");
+    logger.info({ count: items.length, ms: duration, status: withTimeout.status }, "Apify mobile.de listings fetched");
 
     const normalize = (item: any) => {
       const price = Number(item.price ?? item.priceValue ?? 0) || 0;
@@ -179,12 +189,7 @@ export const fetchApifyMobileListings = async (params: {
     const normalized = items
       .map(normalize)
       .filter(o => OfferType.safeParse(o).success)
-      .filter(o => {
-        if (typeof params.maxPrice === "number" && params.maxPrice > 0) {
-          return o.price === 0 || o.price <= params.maxPrice * 1.15;
-        }
-        return true;
-      })
+      // Do not drop offers by price; the caller can trim later. Filtering too aggressively caused empty results.
       .sort((a, b) => (a.price || 0) - (b.price || 0));
     const stampedNormalized = normalized.map(o => ({ ...o, created_at: new Date().toISOString() }));
 

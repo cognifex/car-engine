@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 
 const MOCK_CARS = {
   initial: [
@@ -18,7 +19,7 @@ const MOCK_CARS = {
   ]
 };
 
-const ChatMessage = ({ msg, onReact, selectedReaction }) => {
+const ChatMessage = ({ msg }) => {
   const isBot = msg.sender === 'bot';
   return (
     <motion.div 
@@ -30,24 +31,6 @@ const ChatMessage = ({ msg, onReact, selectedReaction }) => {
         isBot ? 'bg-white border border-gray-200 text-gray-800' : 'bg-blue-600 text-white'
       }`}>
         <p className="pr-12">{msg.text}</p>
-        {isBot && onReact && (
-          <div className="absolute top-2 right-2 flex gap-1 text-xs">
-            <button
-              className={`px-2 py-1 rounded-full border ${selectedReaction === 'up' ? 'bg-green-50 border-green-400 text-green-700' : 'border-gray-200 text-gray-500 hover:bg-gray-100'}`}
-              onClick={() => onReact(msg, 'up')}
-              aria-label="Daumen hoch"
-            >
-              👍
-            </button>
-            <button
-              className={`px-2 py-1 rounded-full border ${selectedReaction === 'down' ? 'bg-red-50 border-red-400 text-red-700' : 'border-gray-200 text-gray-500 hover:bg-gray-100'}`}
-              onClick={() => onReact(msg, 'down')}
-              aria-label="Daumen runter"
-            >
-              👎
-            </button>
-          </div>
-        )}
       </div>
     </motion.div>
   );
@@ -93,13 +76,15 @@ const OfferCard = ({ offer }) => (
 export default function AutoMatchPrototype() {
   const [messages, setMessages] = useState([]);
   const [offers, setOffers] = useState([]);
+  const [offersHistory, setOffersHistory] = useState([]);
   const [visuals, setVisuals] = useState([]);
   const [definition, setDefinition] = useState('');
   const [inputText, setInputText] = useState(''); // New state for input
   const [isTyping, setIsTyping] = useState(false);
-  const [reactions, setReactions] = useState({});
   const [offersLoading, setOffersLoading] = useState(false);
   const [offersUpdatedAt, setOffersUpdatedAt] = useState(null);
+  const [sessionId, setSessionId] = useState(() => uuidv4());
+  const [agentLog, setAgentLog] = useState([]);
   const messagesEndRef = useRef(null);
 
   const formatAssistantText = (text) => (
@@ -112,7 +97,7 @@ export default function AutoMatchPrototype() {
 
   const botSay = (text, delay = 500) => {
     setTimeout(() => {
-      setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text }]);
+      setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text, ts: new Date().toISOString() }]);
     }, delay);
   };
 
@@ -121,7 +106,7 @@ export default function AutoMatchPrototype() {
     // Only send if chat is empty, to prevent duplicates during hot reloads or in Strict Mode.
     if (messages.length === 0) { 
       const timer1 = setTimeout(() => {
-        setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: "Na, brauchst du ein neues Auto?" }]);
+        setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: "Na, brauchst du ein neues Auto?", ts: new Date().toISOString() }]);
       }, 300);
 
       // Cleanup timers on unmount or re-run to prevent memory leaks and duplicate messages.
@@ -141,6 +126,9 @@ export default function AutoMatchPrototype() {
         const data = await res.json();
         const offersSafe = data.offers || [];
         setOffers(offersSafe);
+        if (offersSafe.length > 0) {
+          setOffersHistory(prev => [...prev, { at: new Date().toISOString(), offers: offersSafe }]);
+        }
         setDefinition("");
         setOffersUpdatedAt(new Date().toISOString());
       } catch (err) {
@@ -156,6 +144,55 @@ export default function AutoMatchPrototype() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]); // Runs whenever the messages array is updated.
+
+  // Poll agent log
+  useEffect(() => {
+    if (!sessionId) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/session-log?sessionId=${sessionId}&limit=20`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setAgentLog(data.entries || []);
+      } catch (err) {
+        // ignore polling errors
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [sessionId]);
+
+  const exportJson = (obj, filename) => {
+    const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportSession = () => {
+    const payload = {
+      sessionId,
+      messages,
+      offersHistory,
+      agentLog,
+      lastUpdate: new Date().toISOString(),
+    };
+    exportJson(payload, `session-${sessionId || "unknown"}.json`);
+  };
+
+  const handleExportArchitecture = async () => {
+    try {
+      const res = await fetch(`/api/agent-architecture${sessionId ? `?sessionId=${sessionId}` : ""}`);
+      if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      const name = sessionId ? `agent-architecture-${sessionId}.json` : 'agent-architecture.json';
+      exportJson(data, name);
+    } catch (err) {
+      console.error('Failed to export architecture', err);
+    }
+  };
 
   const handleSendMessage = async () => {
     const userMessage = inputText.trim();
@@ -175,8 +212,8 @@ export default function AutoMatchPrototype() {
 
     setMessages(prev => [
       ...prev,
-      { id: userId, sender: 'user', text: userMessage },
-      { id: botId, sender: 'bot', text: '...' },
+      { id: userId, sender: 'user', text: userMessage, ts: new Date().toISOString() },
+      { id: botId, sender: 'bot', text: '...', ts: new Date().toISOString() },
     ]);
     setInputText('');
     setIsTyping(true);
@@ -185,7 +222,7 @@ export default function AutoMatchPrototype() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage, history: historyPayload }),
+        body: JSON.stringify({ message: userMessage, history: historyPayload, sessionId }),
       });
 
       if (!response.ok) {
@@ -196,6 +233,7 @@ export default function AutoMatchPrototype() {
       const replyText = formatAssistantText(data.reply || '');
       const followText = formatAssistantText(data.followUp || '');
       const combined = [replyText, followText].filter(Boolean).join(' ').trim();
+      if (data.sessionId) setSessionId(data.sessionId);
 
       setMessages(prev =>
         prev.map(m => m.id === botId
@@ -206,6 +244,7 @@ export default function AutoMatchPrototype() {
       const offersSafe = data.content?.offers || [];
       if (offersSafe.length > 0) {
         setOffers(offersSafe);
+        setOffersHistory(prev => [...prev, { at: new Date().toISOString(), offers: offersSafe }]);
         setOffersUpdatedAt(new Date().toISOString());
       }
       setVisuals(data.content?.visuals || []);
@@ -220,33 +259,6 @@ export default function AutoMatchPrototype() {
       );
     } finally {
       setIsTyping(false);
-    }
-  };
-
-  const handleReaction = async (msg, reaction) => {
-    setReactions(prev => ({ ...prev, [msg.id]: reaction }));
-    try {
-      const historyPayload = messages
-        .filter(m => m.text && m.text !== '...')
-        .map(m => ({
-          role: m.sender === 'bot' ? 'assistant' : 'user',
-          content: m.text,
-        }));
-
-      await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messageId: msg.id,
-          reaction,
-          messageText: msg.text,
-          contentSnapshot: { offers, visuals, definition },
-          history: historyPayload,
-          timestamp: new Date().toISOString(),
-        }),
-      });
-    } catch (error) {
-      console.error('Failed to send feedback', error);
     }
   };
 
@@ -265,8 +277,6 @@ export default function AutoMatchPrototype() {
             <ChatMessage
               key={m.id}
               msg={m}
-              onReact={m.sender === 'bot' ? handleReaction : undefined}
-              selectedReaction={reactions[m.id]}
             />
           ))}
           <div ref={messagesEndRef} />
@@ -293,6 +303,43 @@ export default function AutoMatchPrototype() {
       </div>
       <div className="flex-1 p-6 bg-gray-100 overflow-y-auto">
         <h2 className="text-xl font-bold mb-4 text-gray-700">Live-Angebote & Bilder</h2>
+        <div className="mb-3">
+          <div className="bg-white border border-gray-200 rounded-lg p-3 text-sm text-gray-700 mb-2">
+            <div className="font-semibold text-gray-800 mb-1">Agenten-Log (Session {sessionId})</div>
+            <div className="flex gap-2 mb-2 text-xs">
+              <button onClick={handleExportSession} className="px-2 py-1 bg-gray-100 border rounded hover:bg-gray-200">Session-Export</button>
+              <button onClick={handleExportArchitecture} className="px-2 py-1 bg-gray-100 border rounded hover:bg-gray-200">Architektur-Export</button>
+            </div>
+            <div className="text-xs text-gray-600 max-h-40 overflow-y-auto space-y-2">
+              {agentLog.length === 0 && <div className="text-gray-400">Noch keine Log-Einträge.</div>}
+              {agentLog.map((entry, i) => (
+                <div key={i} className="border-b border-gray-100 pb-2">
+                  <div className="text-[11px] text-gray-500 flex gap-2">
+                    <span>{new Date(entry.at).toLocaleTimeString()}</span>
+                    <span className="text-gray-400">Turn: {entry.turnId || "n/a"}</span>
+                  </div>
+                  <div className="font-medium text-gray-800">User: {entry.user}</div>
+                  <div className="text-gray-700">Bot: {entry.reply}</div>
+                  {entry.debugLogs && entry.debugLogs.length > 0 && (
+                    <div className="mt-1 space-y-1">
+                      {entry.debugLogs.map((log, idx) => (
+                        <div key={idx} className="bg-gray-50 border border-gray-100 rounded p-1">
+                          <div className="text-[11px] font-semibold text-gray-700">{log.agent}</div>
+                          <div className="text-[11px] text-gray-600 truncate">
+                            in: {JSON.stringify(log.input || {})}
+                          </div>
+                          <div className="text-[11px] text-gray-600 truncate">
+                            out: {JSON.stringify(log.output || {})}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
         <div className="text-xs text-gray-500 mb-3 flex gap-3 items-center">
           {offersLoading && <span>Lädt Angebote…</span>}
           {offersUpdatedAt && !offersLoading && <span>Stand: {new Date(offersUpdatedAt).toLocaleTimeString()}</span>}

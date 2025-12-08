@@ -1,6 +1,7 @@
 import { AgentBase } from "./AgentBase.js";
 import { OfferListSchema, Offer, ConversationMessage } from "../utils/types.js";
-import { fetchApifyMobileListings } from "../utils/apify.js";
+import { loadSpecs, SpecModel } from "../utils/specs.js";
+import { getOffers } from "../utils/dataApi.js";
 
 export interface OfferAgentInput {
   brand?: string;
@@ -24,74 +25,115 @@ export class OfferAgent extends AgentBase<OfferAgentInput, typeof OfferListSchem
   }
 
   async run(input: OfferAgentInput): Promise<{ offers: Offer[] }> {
-  const parseBudget = () => {
-    const raw = input.fields?.find(f => f.key === "budget")?.value;
-    if (!raw) return undefined;
-    const num = Number(String(raw).replace(/[^0-9]/g, ""));
-    return Number.isFinite(num) && num > 0 ? num : undefined;
-  };
+    const combinedText = `${input.userMessage || ""} ${(input.history || []).map(h => h.content).join(" ")}`.toLowerCase();
+    const fieldBrand = input.fields?.find(f => f.key === "brand")?.value?.toLowerCase();
+    const passengersRaw = input.fields?.find(f => f.key === "passengers")?.value;
+    const passengers = passengersRaw ? Number(String(passengersRaw).replace(/[^0-9]/g, "")) : undefined;
 
-  const combinedText = `${input.userMessage || ""} ${(input.history || []).map(h => h.content).join(" ")}`;
-
-  const isGermanContext = () => {
-    const text = combinedText.toLowerCase();
-    return text.includes("deutsch") || text.includes("german") || text.includes("deutschland") || text.includes("germany");
-  };
-
-  const inferGermanZip = () => {
-    const text = `${combinedText} ${JSON.stringify(input.fields || {})}`.toLowerCase();
-    if (text.includes("deutsch") || text.includes("germany") || text.includes("de")) {
-      return "10115"; // Berlin Mitte als generischer Bezug
-    }
-    return undefined;
-  };
-
-  const defaultBrandModelForBudget = (budget?: number) => {
-    if (budget && budget > 0) {
-      if (budget <= 12000) return { brand: "Volkswagen", model: "Polo" };
-      if (budget <= 20000) return { brand: "Skoda", model: "Octavia" };
-    }
-    return { brand: "Volkswagen", model: "Golf" };
-  };
-
-  const zipGuess = input.zip || inferGermanZip();
-  const fieldBrand = input.fields?.find(f => f.key === "brand")?.value;
-  const fieldModel = input.fields?.find(f => f.key === "model")?.value || input.matchModel;
-
-  // Split matchModel like "Volkswagen Polo" into brand/model guess
-  const splitGuess = () => {
-    if (!fieldModel) return { b: undefined, m: undefined };
-    const parts = fieldModel.split(/\s+/);
-    if (parts.length < 2) return { b: undefined, m: fieldModel };
-    return { b: parts[0], m: parts.slice(1).join(" ") };
-  };
-  const guess = splitGuess();
-
-  const budgetNum = input.maxPrice || parseBudget();
-  const german = isGermanContext();
-  const defaultBM = german ? defaultBrandModelForBudget(budgetNum) : { brand: undefined, model: undefined };
-
-    const params = {
-      brand: input.brand || fieldBrand || guess.b || defaultBM.brand,
-      model: input.model || fieldModel || guess.m || defaultBM.model,
-      maxItems: input.maxItems ?? 5,
-      zip: zipGuess,
-      distance: input.distance ?? (zipGuess ? 200 : undefined),
-      maxPrice: budgetNum,
-      countryHint: german ? "DE" : undefined,
+    const specs = loadSpecs();
+    const detectBrandFromText = () => {
+      const words = new Set((combinedText.match(/[a-zäöüß0-9\-]+/gi) || []).map((w) => w.toLowerCase()));
+      const brands = new Set(specs.map((s) => (s.brand || "").toLowerCase()).filter(Boolean));
+      for (const w of words) {
+        if (brands.has(w)) return w;
+      }
+      return undefined;
     };
 
-    const apifyOffers = await fetchApifyMobileListings({
-      brand: params.brand,
-      model: params.model,
-      maxItems: params.maxItems,
-      maxPrice: params.maxPrice,
+    const brandGuess = fieldBrand || detectBrandFromText();
+
+    const isVague = () => {
+      return (
+        !brandGuess &&
+        !input.model &&
+        !combinedText.match(/\d{4}/) &&
+        (combinedText.includes("retro") ||
+          combinedText.includes("cool") ||
+          combinedText.includes("egal") ||
+          combinedText.includes("vage") ||
+          combinedText.includes("irgend") ||
+          combinedText.length < 15)
+      );
+    };
+
+    const bodyTypeFromText = () => {
+      if (combinedText.match(/suv|geländewagen|crossover/)) return "SUV";
+      if (combinedText.match(/kombi|wagon/)) return "Wagon";
+      if (combinedText.match(/van|kasten/)) return "Van";
+      if (combinedText.match(/klein|stadt|compact|kompakt/)) return "Hatchback";
+      if (combinedText.match(/limousine|sedan/)) return "Sedan";
+      return undefined;
+    };
+    const fuelFromText = () => {
+      if (combinedText.match(/e-?auto|elektro|electric|ev\b|id\./)) return "electric";
+      if (combinedText.match(/hybrid|phev/)) return "hybrid";
+      if (combinedText.match(/diesel/)) return "diesel";
+      if (combinedText.match(/benzin|gasoline|petrol/)) return "petrol";
+      return undefined;
+    };
+    const retroFromText = () => {
+      return combinedText.match(/retro|oldtimer|klassik|vintage|youngtimer/);
+    };
+    const fastFlag = () => combinedText.match(/schnell|flitzer|sport|racing|rasant|leistung|ps\b|kw\b/);
+    const ageFromText = () => {
+      const m = combinedText.match(/max\s*([\d]{1,2})\s*(jahre|years?)/);
+      if (m) return Number(m[1]);
+      if (combinedText.match(/modern|neu|neuest/)) return 8;
+      return undefined;
+    };
+    const wantedBody = bodyTypeFromText();
+    const maxAgeYears = ageFromText();
+    const wantedFuel = fuelFromText();
+
+    const offers = isVague()
+      ? getOffers({
+          limit: input.maxItems ?? 6,
+          dedupe: true,
+          shuffle: true,
+        })
+      : getOffers({
+          bodyType: wantedBody,
+          brand: brandGuess,
+          maxAgeYears,
+          fuelIncludes: wantedFuel,
+          retro: Boolean(retroFromText()),
+          sortByPower: Boolean(fastFlag()),
+          limit: input.maxItems ?? 6,
+          dedupe: true,
+          shuffle: true,
+        });
+
+    // If the query is very vague or we found nothing, fall back to a broad shuffle.
+    const finalOffers =
+      offers.length > 0
+        ? offers
+        : getOffers({
+            brand: brandGuess,
+            sortByPower: Boolean(fastFlag()),
+            limit: input.maxItems ?? 6,
+            dedupe: true,
+            shuffle: true,
+          });
+
+    const toOffer = (spec: SpecModel): Offer => ({
+      title: `${spec.brand} ${spec.model}${spec.year ? " (" + spec.year + ")" : ""}`,
+      model: `${spec.brand} ${spec.model}`,
+      price: 0,
+      dealer: "Modell-Info",
+      link: spec.url || "",
+      image_url: spec.image || "",
+      location: "",
+      mileage: "",
+      badge: [
+        spec.bodyType,
+        spec.enginePowerKw ? `${spec.enginePowerKw} kW` : "",
+        spec.fuel,
+        spec.transmission,
+      ].filter(Boolean).join(" • "),
+      created_at: new Date().toISOString(),
+      vin: "",
     });
 
-    const filtered = apifyOffers.filter(o =>
-      o.image_url && o.image_url.startsWith("http") && o.link && o.price > 0 && o.title
-    );
-
-    return { offers: filtered };
+    return { offers: finalOffers.map(toOffer) };
   }
 }

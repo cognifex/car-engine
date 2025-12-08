@@ -5,6 +5,12 @@ export type ConversationMessage = {
   content: string;
 };
 
+export type AgentLogEntry = {
+  agent: string;
+  input: Record<string, unknown>;
+  output: Record<string, unknown>;
+};
+
 export const profilingSchema = z.object({
   knowledge_level: z.enum(["low", "medium", "high"]),
   confidence: z.enum(["low", "medium", "high"]),
@@ -116,4 +122,5 @@ export interface ConversationState {
   offers?: Offer[];
   content?: ContentPayload;
    profile?: PerfectProfile;
+  debugLogs?: AgentLogEntry[];
 }

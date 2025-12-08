@@ -46,6 +46,7 @@ export const runPipeline = async (userMessage: string, history: ConversationMess
   const initialState: ConversationState = {
     userMessage,
     history,
+    debugLogs: [],
   };
 
   logger.info({ userMessage }, "Starting AutoMatch AI graph run");

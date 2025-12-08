@@ -1,5 +1,5 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { ConversationState } from "../utils/types.js";
+import { ConversationState, AgentLogEntry } from "../utils/types.js";
 import { ProfilingAgent } from "../agents/ProfilingAgent.js";
 import { IntentAgent } from "../agents/IntentAgent.js";
 import { RouterAgent } from "../agents/RouterAgent.js";
@@ -40,66 +40,105 @@ export const buildGraph = (agents: AgentBundle) => {
       content: null,
       profile: null,
       response: null,
+      debugLogs: null,
     },
   });
 
-  graph.addNode("profilingNode", async (state: GraphState) => ({
-    profiling: await agents.profiling.run({ message: state.userMessage, history: state.history }),
-  }));
+  const withLog = (state: GraphState, entry: AgentLogEntry) => ({
+    debugLogs: [...(state.debugLogs || []), entry],
+  });
 
-  graph.addNode("intentNode", async (state: GraphState) => ({
-    intent: await agents.intent.run({
-      message: state.userMessage,
-      profiling: state.profiling,
-      history: state.history,
-    }),
-  }));
-
-  graph.addNode("routerNode", async (state: GraphState) => ({
-    route: await agents.router.run({
-      message: state.userMessage,
-      profiling: state.profiling,
-      intent: state.intent,
-      history: state.history,
-    }),
-  }));
-
-  graph.addNode("knowledgeNode", async (state: GraphState) => {
-    if (state.route?.includeKnowledge === false) return {};
+  graph.addNode("profilingNode", async (state: GraphState) => {
+    const input = { message: state.userMessage, history: state.history || [] };
+    const output = await agents.profiling.run(input);
     return {
-      knowledge: await agents.knowledge.run({
-        message: state.userMessage,
-        intent: state.intent,
-        profiling: state.profiling,
-        history: state.history,
-      }),
+      profiling: output,
+      ...withLog(state, { agent: "profiling", input, output: output as Record<string, unknown> }),
     };
   });
 
-  graph.addNode("profileNode", async (state: GraphState) => ({
-    profile: await agents.profileBuilder.run({
+  graph.addNode("intentNode", async (state: GraphState) => {
+    const input = {
+      message: state.userMessage,
+      profiling: state.profiling,
+      history: state.history,
+    };
+    const output = await agents.intent.run(input);
+    return {
+      intent: output,
+      ...withLog(state, { agent: "intent", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
+    };
+  });
+
+  graph.addNode("routerNode", async (state: GraphState) => {
+    const input = {
       message: state.userMessage,
       profiling: state.profiling,
       intent: state.intent,
       history: state.history,
-    }),
-  }));
+    };
+    const output = await agents.router.run(input);
+    // If user asked for retro/oldtimer, force offers on.
+    const lowerMsg = (state.userMessage || "").toLowerCase();
+    const retroFlag = lowerMsg.includes("retro") || lowerMsg.includes("oldtimer") || lowerMsg.includes("klassik") || lowerMsg.includes("vintage") || lowerMsg.includes("youngtimer");
+    const vagueFlag = (state.intent?.intent === "needs_clarification");
+    const patchedRoute = retroFlag || vagueFlag ? { ...output, includeOffers: true, includeMatching: false } : output;
+    return {
+      route: patchedRoute,
+      ...withLog(state, { agent: "router", input: input as Record<string, unknown>, output: patchedRoute as Record<string, unknown> }),
+    };
+  });
+
+  graph.addNode("knowledgeNode", async (state: GraphState) => {
+    if (state.route?.includeKnowledge === false) return {};
+    const input = {
+      message: state.userMessage,
+      intent: state.intent,
+      profiling: state.profiling,
+      history: state.history,
+    };
+    const output = await agents.knowledge.run(input);
+    return {
+      knowledge: output,
+      ...withLog(state, { agent: "knowledge", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
+    };
+  });
+
+  graph.addNode("profileNode", async (state: GraphState) => {
+    const input = {
+      message: state.userMessage,
+      profiling: state.profiling,
+      intent: state.intent,
+      history: state.history,
+    };
+    const output = await agents.profileBuilder.run(input);
+    return {
+      profile: output,
+      ...withLog(state, { agent: "profileBuilder", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
+    };
+  });
 
   graph.addNode("visualNode", async (state: GraphState) => {
     if (state.route?.includeVisuals === false) return {};
+    const input = { intent: state.intent, knowledge: state.knowledge, history: state.history };
+    const output = await agents.visual.run(input);
     return {
-      visuals: await agents.visual.run({ intent: state.intent, knowledge: state.knowledge, history: state.history }),
+      visuals: output,
+      ...withLog(state, { agent: "visual", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
     };
   });
 
   graph.addNode("matchingNode", async (state: GraphState) => {
     if (state.route?.includeMatching === false) return {};
+    const input = {
+      intent: state.intent,
+      profiling: state.profiling,
+      history: state.history,
+    };
+    const output = await agents.matching.run(input);
     return {
-      matches: await agents.matching.run({
-        intent: state.intent,
-        profiling: state.profiling,
-        history: state.history,
-      }),
+      matches: output,
+      ...withLog(state, { agent: "matching", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
     };
   });
 
@@ -109,17 +148,20 @@ export const buildGraph = (agents: AgentBundle) => {
     const modelParts = matchModel ? matchModel.split(" ") : [];
     const brandGuess = modelParts[0];
     const modelGuess = modelParts.slice(1).join(" ");
+    const input = {
+      intent: state.intent?.intent,
+      fields: state.intent?.fields,
+      profiling: state.profiling,
+      brand: state.intent?.fields?.find(f => f.key === "brand")?.value || brandGuess,
+      model: state.intent?.fields?.find(f => f.key === "model")?.value || modelGuess,
+      matchModel,
+      userMessage: state.userMessage,
+      history: state.history,
+    };
+    const output = await agents.offers.run(input as any);
     return {
-      offers: (await agents.offers.run({
-        intent: state.intent?.intent,
-        fields: state.intent?.fields,
-        profiling: state.profiling,
-        brand: state.intent?.fields?.find(f => f.key === "brand")?.value || brandGuess,
-        model: state.intent?.fields?.find(f => f.key === "model")?.value || modelGuess,
-        matchModel,
-        userMessage: state.userMessage,
-        history: state.history,
-      })).offers,
+      offers: output.offers,
+      ...withLog(state, { agent: "offers", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
     };
   });
 
@@ -127,11 +169,15 @@ export const buildGraph = (agents: AgentBundle) => {
     const visuals = state.visuals?.image_urls || [];
     const offers = state.offers || [];
     const definition = state.knowledge?.explanation || "";
-    return { content: aggregateContent({ offers, visuals, knowledgeText: definition }) };
+    const aggregated = aggregateContent({ offers, visuals, knowledgeText: definition });
+    return {
+      content: aggregated,
+      ...withLog(state, { agent: "contentAggregator", input: { offers, visuals, definition } as Record<string, unknown>, output: aggregated as Record<string, unknown> }),
+    };
   });
 
-  graph.addNode("frontNode", async (state: GraphState) => ({
-    response: await agents.front.run({
+  graph.addNode("frontNode", async (state: GraphState) => {
+    const input = {
       message: state.userMessage,
       profiling: state.profiling,
       intent: state.intent,
@@ -141,15 +187,21 @@ export const buildGraph = (agents: AgentBundle) => {
       offers: state.offers,
       profile: state.profile,
       history: state.history,
-    }),
-  }));
+      debugLogs: state.debugLogs,
+    };
+    const output = await agents.front.run(input);
+    return {
+      response: output,
+      ...withLog(state, { agent: "front", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
+    };
+  });
 
   graph.addEdge(START, "profilingNode" as any);
   graph.addEdge("profilingNode" as any, "intentNode" as any);
   graph.addEdge("intentNode" as any, "routerNode" as any);
   graph.addEdge("routerNode" as any, "knowledgeNode" as any);
   graph.addEdge("knowledgeNode" as any, "profileNode" as any);
-  graph.addEdge("knowledgeNode" as any, "visualNode" as any);
+  graph.addEdge("profileNode" as any, "visualNode" as any);
   graph.addEdge("visualNode" as any, "matchingNode" as any);
   graph.addEdge("matchingNode" as any, "offerNode" as any);
   graph.addEdge("offerNode" as any, "contentNode" as any);
