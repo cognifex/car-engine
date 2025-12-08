@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    env_file:
+      - .env.backend
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+    ports:
+      - "3011:3001"   # VPS Port 3011 → container Port 3001
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "3012:80"     # VPS Port 3012 → Nginx port 80 (static files)
+    restart: unless-stopped
