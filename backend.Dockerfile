@@ -28,6 +28,8 @@ COPY --from=builder /app/backend ./backend
 
 # Copy compiled automatch-ai code
 COPY --from=builder /app/automatch-ai/dist ./automatch-ai/dist
+# Copy source prompts (dist resolves back to src/prompts)
+COPY automatch-ai/src ./automatch-ai/src
 # Copy runtime data needed by automatch-ai (specs/offers)
 COPY automatch-ai/data ./automatch-ai/data
 # Copy automatch-ai node_modules (LLM deps)
