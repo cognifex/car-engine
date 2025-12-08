@@ -210,12 +210,14 @@ app.get('/api/agent-architecture', (req, res) => {
       visuals: "VisualOutput",
       matches: "MatchingOutput",
       offers: "Offer[]",
+      offersMeta: "Record<string, unknown>",
       content: "ContentPayload",
       profile: "PerfectProfile",
+      offerSearchState: "{ failureCount?: number; lastStrategy?: string }",
       response: "FrontOutput",
       debugLogs: "AgentLogEntry[]",
     },
-    note: "Static snapshot of the current LangGraph topology. Execution is sequential per graph.ts.",
+    note: "Static snapshot of the current LangGraph topology. Execution is sequential per graph.ts; router sets strictOffers/retryMatching on dissatisfaction/offroad. OffersMeta/offerSearchState carry observability and retry data.",
   };
   res.json(architecture);
 });
