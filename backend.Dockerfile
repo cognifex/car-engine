@@ -30,6 +30,8 @@ COPY --from=builder /app/backend ./backend
 COPY --from=builder /app/automatch-ai/dist ./automatch-ai/dist
 # Copy runtime data needed by automatch-ai (specs/offers)
 COPY automatch-ai/data ./automatch-ai/data
+# Copy backend node_modules (includes node-fetch)
+COPY --from=builder /app/backend/node_modules ./backend/node_modules
 
 WORKDIR /app/backend
 ENV NODE_ENV=production

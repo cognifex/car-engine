@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
 import fs from 'fs';
+import fetch from 'node-fetch';
 
 // Resolve __dirname for ES modules
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
