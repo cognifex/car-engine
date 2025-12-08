@@ -7,6 +7,7 @@ automatch-ai/.cache/
 
 # Env and secrets
 .env
+.env.*
 backend/.env
 automatch-ai/.env
 
@@ -15,7 +16,7 @@ backend.log
 frontend.log
 *.log
 
-# Build outputs
+# Build outputs (WICHTIG: Docker baut diese selbst)
 dist/
 automatch-ai/dist/
 
@@ -23,4 +24,3 @@ automatch-ai/dist/
 .DS_Store
 .local/
 *.pid
-
