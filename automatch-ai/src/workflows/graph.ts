@@ -234,7 +234,7 @@ const buildPlannerDecision = (state: GraphState): PlannerDecision => {
     intentType === INTENT_TYPES.MODE_REQUEST ||
     intentType === INTENT_TYPES.NEEDS_CLARIFICATION ||
     intentType === INTENT_TYPES.AFFIRMATION;
-  const allowOffers = searchIntent && structured && !metaIntent;
+  const allowOffers = searchIntent && !metaIntent;
   const needsClarification = !structured || intentType === INTENT_TYPES.NEEDS_CLARIFICATION;
 
   const plan: PlanStep[] = [
@@ -426,7 +426,8 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
     const planMeta = state.planMeta || buildPlannerDecision({ ...state, preferenceState: updatedPreferenceState } as GraphState);
 
     const history = new OffersHistory(state.offersHistory as any);
-    const entities = needsEntities((state.intent as any)?.intent, updatedPreferenceState)
+    const shouldFetchEntities = planMeta.allowOffers || needsEntities((state.intent as any)?.intent, updatedPreferenceState);
+    const entities = shouldFetchEntities
       ? applyPreferencesToItems(loadCatalogEntities(updatedPreferenceState, 18), updatedPreferenceState).slice(0, 12)
       : [];
     let offersMeta: Record<string, unknown> = {

@@ -247,6 +247,31 @@ export const detectIntent = (input = "") => {
     } as const;
   }
 
+  // Single-token brand/model hints (e.g. "jeep", "vw") should still trigger a search intent
+  const singleToken = normalized.trim();
+  const ignoreTokens = new Set(["ja", "nein", "hi", "hallo", "moin", "hey", "servus", "kein", "nicht", "no"]);
+  const shortBrandTokens = new Set(["vw", "gmc", "kia", "ram", "bmw"]);
+  if (singleToken && singleToken.indexOf(" ") === -1 && !ignoreTokens.has(singleToken)) {
+    if (singleToken.length >= 3 || shortBrandTokens.has(singleToken)) {
+      return {
+        intent: INTENT_TYPES.PREFERENCE_CHANGE,
+        confidence: 0.7,
+        frustration: false,
+        preferenceSignals: {
+          product: {
+            preferredCategories: [singleToken],
+            excludedCategories: [],
+            preferredAttributes: [],
+            excludedAttributes: [],
+            useCases: [],
+          },
+          conversation: {},
+          style: {},
+        },
+      } as const;
+    }
+  }
+
   if (normalized.length < 6) {
     return { intent: INTENT_TYPES.NEEDS_CLARIFICATION, confidence: 0.6, frustration: false } as const;
   }
