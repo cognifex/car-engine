@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send } from 'lucide-react';
+import { Send, RefreshCw, Maximize2, Eye, WifiOff } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+import { buildSnapshot, evaluateUiState, DEFAULT_UI_FLAGS } from './uiState';
 
 const MOCK_CARS = {
   initial: [
@@ -112,7 +113,14 @@ export default function AutoMatchPrototype() {
   const [agentLog, setAgentLog] = useState([]);
   const [consoleLogs, setConsoleLogs] = useState([]);
   const [uiRecovery, setUiRecovery] = useState({ renderTextOnly: false, degradedMode: false, showBanner: false });
+  const [uiState, setUiState] = useState(DEFAULT_UI_FLAGS);
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+  const chatScrollRef = useRef(null);
+  const offersRef = useRef(null);
+  const navRef = useRef(null);
+  const rootRef = useRef(null);
+  const prevUiSnapshotRef = useRef(null);
 
   const formatAssistantText = (text) => (
     text
@@ -229,6 +237,48 @@ export default function AutoMatchPrototype() {
     setUiRecovery((prev) => ({ ...prev, renderTextOnly: true, degradedMode: true, showBanner: true, reason: 'Bild konnte nicht geladen werden' }));
   };
 
+  const collectUiSnapshot = useCallback(() => {
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const visualViewportHeight = window.visualViewport?.height || viewportHeight;
+    const mainRect = rootRef.current?.getBoundingClientRect();
+    const inputRect = inputRef.current?.getBoundingClientRect();
+    const navRect = navRef.current?.getBoundingClientRect();
+    const chatRect = chatScrollRef.current?.getBoundingClientRect();
+    const touchTargets = Array.from(navRef.current?.querySelectorAll('button') || []).map((btn) => {
+      const rect = btn.getBoundingClientRect();
+      return { name: btn.innerText || 'nav', width: rect.width, height: rect.height };
+    });
+
+    return buildSnapshot({
+      mainRect,
+      inputRect,
+      navRect,
+      chatRect,
+      viewportHeight,
+      viewportWidth,
+      visualViewportHeight,
+      touchTargets,
+    });
+  }, []);
+
+  const runUiHealthCheck = useCallback(() => {
+    const snapshot = collectUiSnapshot();
+    const { state, snapshot: nextSnapshot } = evaluateUiState(snapshot, prevUiSnapshotRef.current || {});
+    prevUiSnapshotRef.current = nextSnapshot;
+    setUiState(state);
+
+    if (state.uiBroken || state.layoutShiftDetected || state.inputNotReachable || state.viewportObstructed || state.keyboardOverlayBlocking) {
+      setUiRecovery((prev) => ({
+        ...prev,
+        renderTextOnly: true,
+        degradedMode: true,
+        showBanner: true,
+        reason: state.issues[0] || 'UI-Problem erkannt',
+      }));
+    }
+  }, [collectUiSnapshot]);
+
   useEffect(() => {
     const handler = () => {
       sendClientEvent('NETWORK_CHANGED', { online: navigator.onLine });
@@ -240,6 +290,18 @@ export default function AutoMatchPrototype() {
       window.removeEventListener('offline', handler);
     };
   }, [sessionId]);
+
+  useEffect(() => {
+    runUiHealthCheck();
+    const interval = setInterval(runUiHealthCheck, 1500);
+    window.addEventListener('resize', runUiHealthCheck);
+    window.addEventListener('scroll', runUiHealthCheck, true);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('resize', runUiHealthCheck);
+      window.removeEventListener('scroll', runUiHealthCheck, true);
+    };
+  }, [runUiHealthCheck]);
 
   // Poll agent log
   useEffect(() => {
@@ -284,6 +346,12 @@ export default function AutoMatchPrototype() {
   const handleSendMessage = async () => {
     const userMessage = inputText.trim();
     if (!userMessage || isTyping) return;
+
+    const hasCriticalUiIssue = uiState.uiBroken || uiState.layoutShiftDetected || uiState.inputNotReachable || uiState.viewportObstructed || uiState.keyboardOverlayBlocking;
+    if (hasCriticalUiIssue) {
+      botSay('UI-Problem erkannt. Bitte UI wiederherstellen (Scroll, Reload, Tastatur schließen).');
+      return;
+    }
 
     const userId = Date.now();
     const botId = userId + 1;
@@ -360,6 +428,15 @@ export default function AutoMatchPrototype() {
     }
   };
 
+  /*
+  Component: SectionLabel
+  - Props: id (string), label (string), icon (ReactNode).
+  - Mobile behavior: bottom navigation pill, full-width flex with 44px+ touch targets and safe-area padding.
+  - Fallback behavior: text-only icon slot; works ohne Emojis/SVG.
+  - Accessibility: aria-pressed, focusable button, hoher Kontrast.
+  - Breakpoints: sichtbar auf sm (Bottom-Nav), ab md als sekundäre Kontrolle ausgeblendet.
+  - Performance: schlanker Button ohne Animationen.
+  */
   const SectionLabel = ({ id, label, icon }) => {
     const isActive = activeSection === id;
     return (
@@ -376,8 +453,29 @@ export default function AutoMatchPrototype() {
     );
   };
 
+  const hasCriticalUiIssue = uiState.uiBroken || uiState.layoutShiftDetected || uiState.inputNotReachable || uiState.viewportObstructed || uiState.keyboardOverlayBlocking;
+  const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
+  const handleUiRecovery = (action) => {
+    if (action === 'reload') {
+      window.location.reload();
+    }
+    if (action === 'scroll-to-input') {
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      inputRef.current?.focus();
+    }
+    if (action === 'reset-zoom') {
+      document.body.style.zoom = '1';
+      runUiHealthCheck();
+    }
+    if (action === 'close-keyboard') {
+      inputRef.current?.blur();
+      runUiHealthCheck();
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-sm text-gray-800 flex flex-col">
+    <div ref={rootRef} className="min-h-screen bg-gray-50 font-sans text-sm text-gray-800 flex flex-col">
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -394,6 +492,44 @@ export default function AutoMatchPrototype() {
         </div>
       </header>
 
+      {hasCriticalUiIssue && (
+        <div className="px-4 md:px-6 mt-3">
+          <div className="max-w-6xl mx-auto bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-sm text-amber-900 flex flex-col gap-3">
+            <div className="flex items-start gap-3">
+              <Eye size={20} className="mt-1" />
+              <div className="flex-1 space-y-1 text-sm">
+                <div className="font-semibold">UI-Problem erkannt – Agentik pausiert</div>
+                <div className="text-amber-800 text-xs leading-relaxed">
+                  {uiState.issues?.length ? uiState.issues.join(' • ') : 'UI nicht nutzbar. Offers, Knowledge, Tools, Matching und Visuals sind temporär deaktiviert.'}
+                </div>
+                {isOffline && (
+                  <div className="flex items-center gap-2 text-[12px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1 w-fit">
+                    <WifiOff size={14} /> Offline erkannt – Netzwerk-Recovery empfohlen.
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <button onClick={() => handleUiRecovery('reload')} className="flex items-center justify-center gap-1 bg-white border border-amber-200 rounded-lg py-2 px-3 text-amber-900 font-medium active:scale-[0.98]">
+                <RefreshCw size={14} /> Reload
+              </button>
+              <button onClick={() => handleUiRecovery('scroll-to-input')} className="flex items-center justify-center gap-1 bg-white border border-amber-200 rounded-lg py-2 px-3 text-amber-900 font-medium active:scale-[0.98]">
+                <Eye size={14} /> Zum Eingabefeld
+              </button>
+              <button onClick={() => handleUiRecovery('reset-zoom')} className="flex items-center justify-center gap-1 bg-white border border-amber-200 rounded-lg py-2 px-3 text-amber-900 font-medium active:scale-[0.98]">
+                <Maximize2 size={14} /> Zoom-Reset
+              </button>
+              <button onClick={() => handleUiRecovery('close-keyboard')} className="flex items-center justify-center gap-1 bg-white border border-amber-200 rounded-lg py-2 px-3 text-amber-900 font-medium active:scale-[0.98]">
+                <Send size={14} /> Tastatur schließen
+              </button>
+            </div>
+            <div className="text-[12px] text-amber-800 leading-relaxed">
+              Recovery-Pfade: UI-Recovery (Reload, Scroll-to-Input, Zoom-Reset), Data-Recovery (Admin-Dump nur bei Bedarf), Network-Recovery (Offline/Instabilität lösen). Keine Domain-Inhalte, solange Flags aktiv.
+            </div>
+          </div>
+        </div>
+      )}
+
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-6 py-4 md:py-6 gap-4 grid md:grid-cols-[1.1fr_0.9fr] lg:grid-cols-[1fr_1fr]">
         {/* Chat & Input */}
         <section className={`${activeSection !== 'chat' ? 'hidden md:flex' : 'flex'} flex-col rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden`}>
@@ -401,7 +537,7 @@ export default function AutoMatchPrototype() {
             <div className="text-sm font-semibold text-gray-900">Chat</div>
             <div className="text-[12px] text-gray-500">Frage stellen, Wünsche teilen, sofort Feedback</div>
           </div>
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+          <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
             {messages.map((m) => (
               <ChatMessage
                 key={m.id}
@@ -417,19 +553,23 @@ export default function AutoMatchPrototype() {
           </div>
           <div className="border-t bg-white px-4 py-3">
             {/* Input field for user messages */}
-            <div className="flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-2 py-1 focus-within:ring-2 focus-within:ring-blue-500">
+            <div className={`flex items-center gap-2 rounded-full border ${hasCriticalUiIssue ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-gray-50'} px-2 py-1 focus-within:ring-2 focus-within:ring-blue-500`}>
               <input
+                ref={inputRef}
                 type="text"
                 className="flex-1 bg-transparent px-2 py-2 text-sm focus:outline-none"
                 placeholder="Deine Nachricht..."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={handleKeyPress}
+                disabled={hasCriticalUiIssue}
+                aria-disabled={hasCriticalUiIssue}
               />
               <button
                 onClick={handleSendMessage}
-                className="h-10 w-10 flex items-center justify-center bg-blue-600 text-white rounded-full active:scale-[0.98] transition"
+                className={`h-10 w-10 flex items-center justify-center ${hasCriticalUiIssue ? 'bg-amber-400' : 'bg-blue-600'} text-white rounded-full active:scale-[0.98] transition`}
                 aria-label="Nachricht senden"
+                disabled={hasCriticalUiIssue}
               >
                 <Send size={18} />
               </button>
@@ -439,7 +579,7 @@ export default function AutoMatchPrototype() {
 
         {/* Offers & Logs */}
         <section className={`${activeSection !== 'offers' ? 'hidden md:flex' : 'flex'} flex-col gap-3`}>
-          <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-4">
+          <div ref={offersRef} className="rounded-2xl bg-white border border-gray-100 shadow-sm p-4">
             <div className="flex items-center justify-between mb-2">
               <div>
                 <h2 className="text-base font-semibold text-gray-900">Live-Angebote</h2>
@@ -461,29 +601,37 @@ export default function AutoMatchPrototype() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <AnimatePresence>
-                {offers.map((offer, idx) => (
-                  <OfferCard key={idx} offer={offer} onImageError={handleImageError} renderTextOnly={uiRecovery.renderTextOnly} />
-                ))}
-              </AnimatePresence>
-            </div>
-
-            {offers.length === 0 && (
-              <div className="text-xs text-gray-500 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-3 mt-2">
-                Noch keine Angebote – teile deinen Wunsch im Chat, wir füllen die Liste.
+            {hasCriticalUiIssue ? (
+              <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
+                UI-Problem erkannt – Angebote, Bilder und Logs pausiert, bis das UI wieder nutzbar ist.
               </div>
-            )}
-
-            {visuals.length > 0 && !uiRecovery.renderTextOnly && (
-              <div className="mt-4">
-                <h3 className="text-sm font-semibold text-gray-800 mb-2">Beispielbilder</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {visuals.slice(0, 8).map((url, i) => (
-                    <img key={i} src={url} alt={`visual-${i}`} className="w-full h-24 object-cover rounded-lg border" loading="lazy" />
-                  ))}
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <AnimatePresence>
+                    {offers.map((offer, idx) => (
+                      <OfferCard key={idx} offer={offer} onImageError={handleImageError} renderTextOnly={uiRecovery.renderTextOnly} />
+                    ))}
+                  </AnimatePresence>
                 </div>
-              </div>
+
+                {offers.length === 0 && (
+                  <div className="text-xs text-gray-500 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-3 mt-2">
+                    Noch keine Angebote – teile deinen Wunsch im Chat, wir füllen die Liste.
+                  </div>
+                )}
+
+                {visuals.length > 0 && !uiRecovery.renderTextOnly && (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-semibold text-gray-800 mb-2">Beispielbilder</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {visuals.slice(0, 8).map((url, i) => (
+                        <img key={i} src={url} alt={`visual-${i}`} className="w-full h-24 object-cover rounded-lg border" loading="lazy" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -499,39 +647,43 @@ export default function AutoMatchPrototype() {
                 </button>
               </div>
             </div>
-            <div className="text-xs text-gray-600 max-h-52 overflow-y-auto space-y-2">
-              {agentLog.length === 0 && <div className="text-gray-400">Noch keine Log-Einträge.</div>}
-              {agentLog.map((entry, i) => (
-                <div key={i} className="border border-gray-100 rounded-lg p-2">
-                  <div className="text-[11px] text-gray-500 flex gap-2">
-                    <span>{new Date(entry.at).toLocaleTimeString()}</span>
-                    <span className="text-gray-400">Turn: {entry.turnId || "n/a"}</span>
-                  </div>
-                  <div className="font-medium text-gray-800 mt-1">User: {entry.user}</div>
-                  <div className="text-gray-700">Bot: {entry.reply}</div>
-                  {entry.debugLogs && entry.debugLogs.length > 0 && (
-                    <div className="mt-1 space-y-1">
-                      {entry.debugLogs.map((log, idx) => (
-                        <div key={idx} className="bg-gray-50 border border-gray-100 rounded p-1">
-                          <div className="text-[11px] font-semibold text-gray-700">{log.agent}</div>
-                          <div className="text-[11px] text-gray-600 truncate">
-                            in: {JSON.stringify(log.input || {})}
-                          </div>
-                          <div className="text-[11px] text-gray-600 truncate">
-                            out: {JSON.stringify(log.output || {})}
-                          </div>
-                        </div>
-                      ))}
+            {hasCriticalUiIssue ? (
+              <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">Logs pausiert, bis die UI wieder nutzbar ist.</div>
+            ) : (
+              <div className="text-xs text-gray-600 max-h-52 overflow-y-auto space-y-2">
+                {agentLog.length === 0 && <div className="text-gray-400">Noch keine Log-Einträge.</div>}
+                {agentLog.map((entry, i) => (
+                  <div key={i} className="border border-gray-100 rounded-lg p-2">
+                    <div className="text-[11px] text-gray-500 flex gap-2">
+                      <span>{new Date(entry.at).toLocaleTimeString()}</span>
+                      <span className="text-gray-400">Turn: {entry.turnId || "n/a"}</span>
                     </div>
-                  )}
-                </div>
-              ))}
-            </div>
+                    <div className="font-medium text-gray-800 mt-1">User: {entry.user}</div>
+                    <div className="text-gray-700">Bot: {entry.reply}</div>
+                    {entry.debugLogs && entry.debugLogs.length > 0 && (
+                      <div className="mt-1 space-y-1">
+                        {entry.debugLogs.map((log, idx) => (
+                          <div key={idx} className="bg-gray-50 border border-gray-100 rounded p-1">
+                            <div className="text-[11px] font-semibold text-gray-700">{log.agent}</div>
+                            <div className="text-[11px] text-gray-600 truncate">
+                              in: {JSON.stringify(log.input || {})}
+                            </div>
+                            <div className="text-[11px] text-gray-600 truncate">
+                              out: {JSON.stringify(log.output || {})}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </section>
       </main>
 
-      <nav className="md:hidden sticky bottom-0 z-30 bg-white border-t border-gray-100 shadow-inner">
+      <nav ref={navRef} className="md:hidden sticky bottom-0 z-30 bg-white border-t border-gray-100 shadow-inner" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 4px)' }}>
         <div className="flex max-w-6xl mx-auto px-1 py-2">
           <SectionLabel id="chat" label="Chat" icon="💬" />
           <SectionLabel id="offers" label="Angebote" icon="🚗" />
