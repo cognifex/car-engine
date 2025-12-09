@@ -233,6 +233,15 @@ const buildPlanHint = ({
     : "Plan: Gespräch fokussieren, dann Ergebnisse liefern.";
 };
 
+const hasProductHint = (preferenceState?: PreferenceConstraintStateData) => {
+  const product = preferenceState?.product || { preferredCategories: [], useCases: [] };
+  return Boolean(
+    (product.preferredCategories && product.preferredCategories.length > 0) ||
+      (product.useCases && product.useCases.length > 0) ||
+      preferenceState?.filters
+  );
+};
+
 const buildPlannerDecision = (state: GraphState): PlannerDecision => {
   const intentType = (state.intent as any)?.intent;
   const preferenceState = state.preferenceState as PreferenceConstraintStateData;
@@ -244,8 +253,9 @@ const buildPlannerDecision = (state: GraphState): PlannerDecision => {
     intentType === INTENT_TYPES.MODE_REQUEST ||
     intentType === INTENT_TYPES.NEEDS_CLARIFICATION ||
     intentType === INTENT_TYPES.AFFIRMATION;
-  const allowOffers = searchIntent && !metaIntent;
-  const needsClarification = !structured || intentType === INTENT_TYPES.NEEDS_CLARIFICATION;
+  const smallTalk = intentType === INTENT_TYPES.SMALL_TALK;
+  const allowOffers = searchIntent && !metaIntent && (structured || hasProductHint(preferenceState));
+  const needsClarification = !structured && !smallTalk && intentType !== INTENT_TYPES.SMALL_TALK && intentType !== INTENT_TYPES.FRUSTRATION;
 
   const plan: PlanStep[] = [
     { id: "intent-parse", description: "Verstehe Absicht und Stimmung", agent: "intent", required: true },
@@ -358,7 +368,7 @@ const composeReply = ({
   }
 
   const reply = applyPersonaTone(base, friendlyPersona, { frustration, planHint: includePlanHint ? planHint : undefined });
-  const followUp =
+  let followUp =
     content_state.has_results && !content_state.clarification_required
       ? pick([
           "Willst du Budget oder Marke einschränken?",
@@ -367,6 +377,11 @@ const composeReply = ({
       : uiHealth.render_text_only
         ? "Visuelle Elemente reduziere ich, bis die UI stabil ist."
         : evaluation?.followUp || "";
+
+  const replyLower = reply.toLowerCase();
+  if (followUp && replyLower.includes(followUp.toLowerCase())) {
+    followUp = "";
+  }
 
   if (lastReply && reply === lastReply) {
     return {
@@ -514,7 +529,8 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
     const planMeta = state.planMeta || buildPlannerDecision({ ...state, preferenceState: updatedPreferenceState } as GraphState);
 
     const history = new OffersHistory(state.offersHistory as any);
-    const shouldFetchEntities = planMeta.allowOffers || needsEntities((state.intent as any)?.intent, updatedPreferenceState);
+    const shouldFetchEntities =
+      planMeta.allowOffers || (needsEntities((state.intent as any)?.intent, updatedPreferenceState) && hasProductHint(updatedPreferenceState));
     const entities = shouldFetchEntities
       ? applyPreferencesToItems(loadCatalogEntities(updatedPreferenceState, 18), updatedPreferenceState).slice(0, 12)
       : [];
@@ -663,7 +679,9 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
     const reflectionSummary = loadReflectionSummary();
     const evaluation = state.evaluation as TurnEvaluation | undefined;
     const frustration = Boolean((state.intent as any)?.frustration);
-    const includePlanHint = !content_state.has_results || content_state.clarification_required || Boolean(content_state.repeat_with_changed_constraints);
+    const includePlanHint =
+      (!content_state.has_results || content_state.clarification_required || Boolean(content_state.repeat_with_changed_constraints)) &&
+      (state.intent as any)?.intent !== INTENT_TYPES.SMALL_TALK;
 
     const composed = composeReply({
       content_state,

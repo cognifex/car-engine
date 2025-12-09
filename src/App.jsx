@@ -558,44 +558,6 @@ export default function AutoMatchPrototype() {
         </div>
       </header>
 
-      {uiIssueDetected && (
-        <div className="px-4 md:px-6 mt-3">
-          <div className="max-w-6xl mx-auto bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-sm text-amber-900 flex flex-col gap-3">
-            <div className="flex items-start gap-3">
-              <Eye size={20} className="mt-1" />
-              <div className="flex-1 space-y-1 text-sm">
-                <div className="font-semibold">UI-Problem erkannt – Agentik pausiert</div>
-                <div className="text-amber-800 text-xs leading-relaxed">
-                  {uiState.issues?.length ? uiState.issues.join(' • ') : 'UI nicht nutzbar. Offers, Knowledge, Tools, Matching und Visuals sind temporär deaktiviert.'}
-                </div>
-                {isOffline && (
-                  <div className="flex items-center gap-2 text-[12px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-2 py-1 w-fit">
-                    <WifiOff size={14} /> Offline erkannt – Netzwerk-Recovery empfohlen.
-                  </div>
-                )}
-              </div>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              <button onClick={() => handleUiRecovery('reload')} className="flex items-center justify-center gap-1 bg-white border border-amber-200 rounded-lg py-2 px-3 text-amber-900 font-medium active:scale-[0.98]">
-                <RefreshCw size={14} /> Reload
-              </button>
-              <button onClick={() => handleUiRecovery('scroll-to-input')} className="flex items-center justify-center gap-1 bg-white border border-amber-200 rounded-lg py-2 px-3 text-amber-900 font-medium active:scale-[0.98]">
-                <Eye size={14} /> Zum Eingabefeld
-              </button>
-              <button onClick={() => handleUiRecovery('reset-zoom')} className="flex items-center justify-center gap-1 bg-white border border-amber-200 rounded-lg py-2 px-3 text-amber-900 font-medium active:scale-[0.98]">
-                <Maximize2 size={14} /> Zoom-Reset
-              </button>
-              <button onClick={() => handleUiRecovery('close-keyboard')} className="flex items-center justify-center gap-1 bg-white border border-amber-200 rounded-lg py-2 px-3 text-amber-900 font-medium active:scale-[0.98]">
-                <Send size={14} /> Tastatur schließen
-              </button>
-            </div>
-            <div className="text-[12px] text-amber-800 leading-relaxed">
-              Recovery-Pfade: UI-Recovery (Reload, Scroll-to-Input, Zoom-Reset), Data-Recovery (Admin-Dump nur bei Bedarf), Network-Recovery (Offline/Instabilität lösen). Keine Domain-Inhalte, solange Flags aktiv.
-            </div>
-          </div>
-        </div>
-      )}
-
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-6 py-4 md:py-6 gap-4 grid md:grid-cols-[1.1fr_0.9fr] lg:grid-cols-[1fr_1fr]">
         {/* Chat & Input */}
         <section className={`${activeSection !== 'chat' ? 'hidden md:flex' : 'flex'} flex-col rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden`}>

@@ -13,6 +13,7 @@ export const INTENT_TYPES = {
   META_COMMUNICATION: "meta_communication",
   KNOWLEDGE_SIGNAL: "knowledge_signal",
   MODE_REQUEST: "mode_request",
+  SMALL_TALK: "small_talk",
 } as const;
 
 export type IntentLiteral = (typeof INTENT_TYPES)[keyof typeof INTENT_TYPES];
@@ -248,6 +249,34 @@ export const detectIntent = (input = "") => {
       confidence: 0.72,
       frustration: false,
       preferenceSignals,
+    } as const;
+  }
+
+  const weatherTokens = ["wetter", "regen", "sonne", "schnee", "wetterbericht", "wetter bericht"];
+  if (weatherTokens.some((token) => normalized.includes(token))) {
+    return {
+      intent: INTENT_TYPES.SMALL_TALK,
+      confidence: 0.65,
+      frustration: false,
+      preferenceSignals: {
+        conversation: { tone: "warm" },
+        product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] },
+        style: { brevity: "short", vibe: ["casual"] },
+      },
+    } as const;
+  }
+
+  const brevityTokens = ["zu lang", "zu viele worte", "kürzer"];
+  if (brevityTokens.some((token) => normalized.includes(token))) {
+    return {
+      intent: INTENT_TYPES.INFORMATION,
+      confidence: 0.6,
+      frustration: false,
+      preferenceSignals: {
+        style: { brevity: "short", vibe: ["concise"] },
+        product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] },
+        conversation: {},
+      },
     } as const;
   }
 
