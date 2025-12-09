@@ -17,6 +17,7 @@ export type RoutingInputs = {
   relevanceScore?: number;
   needsClarification?: boolean;
   repeatWithChangedConstraints?: boolean;
+  allowOffers?: boolean;
 };
 
 export type RoutingDecision = {
@@ -28,19 +29,22 @@ export const evaluateRouting = (
   inputs: RoutingInputs,
   config: RoutingPolicyConfig = defaultConfig,
 ): RoutingDecision => {
-  const offerCount = inputs.offerCount || 0;
-  const no_relevant_results = offerCount === 0;
-  const clarification_required = Boolean(inputs.needsClarification);
+  const allowOffers = inputs.allowOffers !== undefined ? inputs.allowOffers : true;
+  const offerCount = allowOffers ? inputs.offerCount || 0 : 0;
+  const no_relevant_results = !allowOffers || offerCount === 0;
+  const clarification_required = Boolean(inputs.needsClarification) || !allowOffers;
   const fallback_used =
-    Boolean(inputs.relevanceScore && inputs.relevanceScore < config.clarificationThreshold) || Boolean(inputs.repeatWithChangedConstraints);
+    Boolean(inputs.relevanceScore && inputs.relevanceScore < config.clarificationThreshold) ||
+    Boolean(inputs.repeatWithChangedConstraints) ||
+    !allowOffers;
 
-  const strict_matching = config.allowStrictMatching && !clarification_required && !fallback_used;
+  const strict_matching = config.allowStrictMatching && !clarification_required && !fallback_used && allowOffers;
 
   const route: RouteDecision = {
-    includeKnowledge: !clarification_required,
+    includeKnowledge: clarification_required || !allowOffers ? true : !clarification_required,
     includeVisuals: !fallback_used,
-    includeMatching: !clarification_required,
-    includeOffers: true,
+    includeMatching: allowOffers && !clarification_required,
+    includeOffers: allowOffers && !clarification_required,
     strictOffers: strict_matching,
     retryMatching: fallback_used,
   };

@@ -20,7 +20,14 @@ describe("graph workflow", () => {
 
   it("flags repeat sets when intent/state changes and avoids re-showing identical offers", async () => {
     const graph = buildGraph();
-    const first = await graph.invoke(baseState("zeige optionen"));
+    const first = await graph.invoke({
+      ...baseState("zeige optionen"),
+      preferenceState: {
+        product: { preferredCategories: ["jeep"], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] },
+        conversation: {},
+        style: {},
+      },
+    });
     expect(first.offers?.length).toBeGreaterThan(0);
 
     const second = await graph.invoke({
@@ -40,5 +47,14 @@ describe("graph workflow", () => {
 
     expect(result.intent?.frustration).toBe(true);
     expect(result.response?.reply.toLowerCase()).toContain("sorry");
+  });
+
+  it("stays in onboarding/plan mode for meta communication without structured request", async () => {
+    const graph = buildGraph();
+    const result = await graph.invoke(baseState("stell mir bitte erst fragen, ich kenne mich nicht aus"));
+
+    expect(result.offers?.length || 0).toBe(0);
+    expect(result.response?.reply.toLowerCase()).toContain("plan");
+    expect(result.content_state?.clarification_required).toBe(true);
   });
 });

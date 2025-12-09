@@ -36,6 +36,9 @@ export const intentSchema = z.object({
     "feedback_negative",
     "frustration",
     "small_talk",
+    "meta_communication",
+    "knowledge_signal",
+    "mode_request",
   ]),
   fields: z
     .array(

@@ -20,12 +20,17 @@ import {
   applyPreferencesToItems,
   detectIntent,
   needsEntities,
+  isSearchIntent,
+  hasStructuredProductRequirement,
 } from "../utils/preferences.js";
+import { loadReflectionSummary, recordReflection } from "../utils/reflection.js";
 
 export type GraphState = ConversationState &
   Record<string, unknown> & {
     preferenceState?: PreferenceConstraintStateData;
     offersHistory?: { timestamp: string; items: string[]; intentType?: string; preferenceState: PreferenceConstraintStateData }[];
+    conversationPlan?: string;
+    gatingReason?: string;
   };
 
 const withLog = (state: GraphState, entry: AgentLogEntry) => ({
@@ -100,23 +105,61 @@ const buildRecovery = (uiHealth: UIHealth): UIRecoveryInstruction => {
   };
 };
 
-const buildResponseText = (content_state: ContentState & { repeat_with_changed_constraints?: boolean }, uiHealth: UIHealth, frustration: boolean) => {
+const buildPlanHint = ({
+  intentType,
+  allowOffers,
+  structured,
+  preferenceState,
+}: {
+  intentType?: string;
+  allowOffers: boolean;
+  structured: boolean;
+  preferenceState?: PreferenceConstraintStateData;
+}) => {
+  if (allowOffers) {
+    return "Plan: Ergebnisse kurz anreißen und bei Bedarf vertiefen.";
+  }
+  if (!structured) {
+    return "Plan: Erst ein, zwei Anforderungen klären (z.B. Nutzung, Budget), dann Ergebnisse zeigen.";
+  }
+  if (intentType === INTENT_TYPES.KNOWLEDGE_SIGNAL || intentType === INTENT_TYPES.MODE_REQUEST || intentType === INTENT_TYPES.META_COMMUNICATION) {
+    return "Plan: Geführtes Onboarding mit Rückfragen, bevor wir Angebote laden.";
+  }
+  const categories = (preferenceState?.product?.preferredCategories || []).slice(0, 2).join(", ");
+  return categories
+    ? `Plan: Kurz bestätigen (${categories}) und erst danach Treffer zeigen.`
+    : "Plan: Gespräch fokussieren, dann Ergebnisse liefern.";
+};
+
+const buildResponseText = (
+  content_state: ContentState & { repeat_with_changed_constraints?: boolean },
+  uiHealth: UIHealth,
+  frustration: boolean,
+  planHint?: string,
+  lastUserMessage?: string,
+) => {
   const lines: string[] = [];
+  if (lastUserMessage) {
+    lines.push(`Du sagst: "${lastUserMessage.trim()}"`);
+  }
   if (frustration) {
     lines.push("Sorry für die Reibung – ich halte es kurz und stabil.");
   }
   if (content_state.repeat_with_changed_constraints) {
     lines.push("Die neuen Filter liefern dieselben Ergebnisse. Magst du die Kriterien anpassen?");
   } else if (!content_state.has_results || content_state.no_relevant_results) {
-    lines.push("Keine passenden Ergebnisse gefunden, ich bleibe im Textmodus.");
+    lines.push("Noch keine passenden Ergebnisse. Lass uns die Kriterien kurz schärfen.");
   } else {
-    lines.push(`Ich habe ${content_state.num_results} Ergebnisse zusammengestellt.`);
+    lines.push(`Ich habe ${content_state.num_results} Ergebnisse vorbereitet.`);
+  }
+  if (planHint) {
+    lines.push(planHint);
   }
   if (content_state.clarification_required) {
-    lines.push("Gib mir bitte noch Kontext oder Parameter, damit ich präziser liefern kann.");
+    lines.push("Wenn du willst, stelle ich gezielt 2-3 Fragen und gehe dann in die Liste.");
   }
   if (uiHealth.render_text_only) {
-    lines.push("Visuelle Elemente sind reduziert, bis die UI wieder stabil ist.");
+    lines.push("Visuelle Elemente sind reduziert, bis die UI stabil ist.");
   }
   return lines.join(" ").trim();
 };
@@ -139,6 +182,8 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       response: null,
       preferenceState: null,
       offersHistory: null,
+      conversationPlan: null,
+      gatingReason: null,
       debugLogs: null,
     },
   });
@@ -177,15 +222,27 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
   graph.addNode("entityFetchNode", async (state: GraphState) => {
     const entities = loadDemoEntities();
     const preferenceState = state.preferenceState as PreferenceConstraintStateData;
-    const filteredEntities = needsEntities((state.intent as any)?.intent) ? applyPreferencesToItems(entities, preferenceState) : [];
+    const filteredEntities = needsEntities((state.intent as any)?.intent, preferenceState) ? applyPreferencesToItems(entities, preferenceState) : [];
     collector?.recordNode({ name: "entityFetch", input: { preferenceState } as Record<string, unknown>, output: { entities: filteredEntities } as Record<string, unknown> });
     return { entities: filteredEntities, ...withLog(state, { agent: "entityFetch", input: { preferenceState } as Record<string, unknown>, output: { entities: filteredEntities } as Record<string, unknown> }) };
   });
 
   graph.addNode("routingNode", async (state: GraphState) => {
-    const needsClarification = state.intent?.intent === INTENT_TYPES.NEEDS_CLARIFICATION || state.intent?.intent === INTENT_TYPES.AFFIRMATION;
+    const intentType = (state.intent as any)?.intent;
+    const preferenceState = state.preferenceState as PreferenceConstraintStateData;
+    const structured = hasStructuredProductRequirement(preferenceState);
+    const searchIntent = isSearchIntent(intentType);
+    const metaIntent =
+      intentType === INTENT_TYPES.META_COMMUNICATION ||
+      intentType === INTENT_TYPES.KNOWLEDGE_SIGNAL ||
+      intentType === INTENT_TYPES.MODE_REQUEST ||
+      intentType === INTENT_TYPES.NEEDS_CLARIFICATION ||
+      intentType === INTENT_TYPES.AFFIRMATION;
+    const allowOffers = searchIntent && structured && !metaIntent;
+    const needsClarification = !allowOffers;
+
     const entityList = Array.isArray(state.entities) ? (state.entities as Record<string, unknown>[]) : [];
-    const offers = buildOffersFromEntities(entityList);
+    const offers = allowOffers ? buildOffersFromEntities(entityList) : [];
     const history = new OffersHistory(state.offersHistory as any);
     const repeatWithChangedConstraints = history.detectRepeatWithChanges(offers, state.intent as any, (state.preferenceState || {}) as PreferenceConstraintStateData);
     const decision = evaluateRouting(
@@ -194,10 +251,22 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
         offerCount: offers.length,
         needsClarification,
         repeatWithChangedConstraints,
+        allowOffers,
       },
       undefined,
     );
+    if (!allowOffers) {
+      recordReflection({
+        reason: metaIntent ? "user_requested_guidance" : structured ? "missing_search_intent" : "missing_requirements",
+        intent: intentType,
+        gatingReason: metaIntent ? "guidance" : structured ? "intent" : "requirements",
+      });
+    }
+    if (repeatWithChangedConstraints) {
+      recordReflection({ reason: "repeat_with_changed_constraints", intent: intentType, gatingReason: "repeat" });
+    }
     const filteredOffers = repeatWithChangedConstraints ? [] : offers;
+    const planHint = buildPlanHint({ intentType, allowOffers, structured, preferenceState });
     const content_state: ContentState = {
       ...decision.content_state,
       has_results: filteredOffers.length > 0,
@@ -215,7 +284,9 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       content_state,
       offers: filteredOffers,
       repeat_with_changed_constraints: repeatWithChangedConstraints,
-      ...withLog(state, { agent: "routing", input: { intent: state.intent, offers: offers.length } as Record<string, unknown>, output: { decision, repeatWithChangedConstraints } as unknown as Record<string, unknown> }),
+      conversationPlan: planHint,
+      gatingReason: allowOffers ? undefined : structured ? "waiting_for_explicit_search_intent" : "needs_structured_requirement",
+      ...withLog(state, { agent: "routing", input: { intent: state.intent, offers: offers.length } as Record<string, unknown>, output: { decision, repeatWithChangedConstraints, allowOffers, structured } as unknown as Record<string, unknown> }),
     };
   });
 
@@ -259,9 +330,26 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
     };
     const offers = (state.offers as any[]) || [];
     const history = new OffersHistory(state.offersHistory as any);
-    history.record({ items: offers, intentType: (state.intent as any)?.intent, preferenceState: (state.preferenceState as PreferenceConstraintStateData) || { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [] } });
+    history.record({
+      items: offers,
+      intentType: (state.intent as any)?.intent,
+      preferenceState:
+        (state.preferenceState as PreferenceConstraintStateData) || {
+          product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] },
+          conversation: {},
+          style: {},
+        },
+    });
     const offersHistory = history.snapshot();
-    const reply = buildResponseText(content_state, uiHealth, Boolean(state.intent?.frustration));
+    const planHint = state.conversationPlan as string | undefined;
+    const reflectionSummary = loadReflectionSummary();
+    const reply = buildResponseText(
+      content_state,
+      uiHealth,
+      Boolean(state.intent?.frustration),
+      planHint || reflectionSummary,
+      state.userMessage as string,
+    );
     const content = {
       offers,
       visuals: uiHealth.render_text_only ? [] : offers.map((o) => o.image_url).filter(Boolean).slice(0, 6),

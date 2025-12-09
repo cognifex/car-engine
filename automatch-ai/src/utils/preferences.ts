@@ -10,15 +10,39 @@ export const INTENT_TYPES = {
   FEEDBACK_NEGATIVE: "feedback_negative",
   FRUSTRATION: "frustration",
   NEEDS_CLARIFICATION: "needs_clarification",
+  META_COMMUNICATION: "meta_communication",
+  KNOWLEDGE_SIGNAL: "knowledge_signal",
+  MODE_REQUEST: "mode_request",
 } as const;
 
 export type IntentLiteral = (typeof INTENT_TYPES)[keyof typeof INTENT_TYPES];
 
-export type PreferenceConstraintStateData = {
+export type ProductPreference = {
   preferredCategories: string[];
   excludedCategories: string[];
   preferredAttributes: string[];
   excludedAttributes: string[];
+  budget?: { min?: number; max?: number };
+  useCases?: string[];
+};
+
+export type ConversationPreference = {
+  knowledgeLevel?: "novice" | "intermediate" | "expert";
+  desiredMode?: "onboarding" | "direct";
+  detailLevel?: "low" | "balanced" | "high";
+  tone?: "warm" | "concise" | "neutral";
+  wantsGuidedQuestions?: boolean;
+};
+
+export type StylePreference = {
+  vibe?: string[];
+  brevity?: "short" | "normal" | "detailed";
+};
+
+export type PreferenceConstraintStateData = {
+  product: ProductPreference;
+  conversation: ConversationPreference;
+  style: StylePreference;
   filters?: Record<string, unknown>;
 };
 
@@ -35,11 +59,20 @@ const mergeUnique = (existing: string[] = [], incoming: string[] = []) => {
   return Array.from(map.values());
 };
 
+const parseBudget = (normalized: string) => {
+  const match = normalized.match(/\b(?:unter|bis|max|budget|<=?)\s*(\d{2,5})(?:[.,](\d{1,2}))?\b/);
+  if (!match) return undefined;
+  const value = Number(match[1]);
+  if (Number.isNaN(value)) return undefined;
+  return { max: value };
+};
+
 const extractPreferenceSignals = (normalized: string) => {
   const preferredCategories: string[] = [];
   const excludedCategories: string[] = [];
   const preferredAttributes: string[] = [];
   const excludedAttributes: string[] = [];
+  const useCases: string[] = [];
 
   const preferRegex = /\b(?:prefer|rather have|like|lieber|bevorzuge)\s+([^.,;]+?)(?:\s+over\s+([^.,;]+))?(?:\.|,|;|$)/;
   const preferMatch = normalized.match(preferRegex);
@@ -69,7 +102,30 @@ const extractPreferenceSignals = (normalized: string) => {
     }
   });
 
-  return { preferredCategories, excludedCategories, preferredAttributes, excludedAttributes };
+  const useCaseRegex = /\b(stadt|stadtverkehr|langstrecke|gebirge|gelände|offroad|familie|pendeln)\b/;
+  const useCaseMatch = normalized.match(useCaseRegex);
+  if (useCaseMatch) {
+    useCases.push(useCaseMatch[1]);
+  }
+
+  const searchPattern = /\b(?:suche|zeige|zeig|finde)\s+([^.,;]+)/;
+  const searchMatch = normalized.match(searchPattern);
+  if (searchMatch && searchMatch[1]) {
+    preferredCategories.push(searchMatch[1].trim());
+  }
+
+  return {
+    product: {
+      preferredCategories,
+      excludedCategories,
+      preferredAttributes,
+      excludedAttributes,
+      budget: parseBudget(normalized),
+      useCases,
+    },
+    conversation: {},
+    style: {},
+  };
 };
 
 export const detectIntent = (input = "") => {
@@ -85,6 +141,64 @@ export const detectIntent = (input = "") => {
     )
   ) {
     return { intent: INTENT_TYPES.AFFIRMATION, confidence: 0.9, frustration: false } as const;
+  }
+
+  const knowledgeTokens = [
+    "kenne mich nicht aus",
+    "bin neu",
+    "keine ahnung",
+    "wie geht das",
+    "brauch hilfe",
+    "erklär",
+    "bitte erklär",
+  ];
+  if (knowledgeTokens.some((token) => normalized.includes(token))) {
+    return {
+      intent: INTENT_TYPES.KNOWLEDGE_SIGNAL,
+      confidence: 0.82,
+      frustration: false,
+      preferenceSignals: {
+        conversation: { knowledgeLevel: "novice", desiredMode: "onboarding", wantsGuidedQuestions: true, detailLevel: "low" },
+        product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [] },
+        style: { brevity: "normal", vibe: ["supportive"] },
+      },
+    } as const;
+  }
+
+  const modeRequestTokens = [
+    "frag mich",
+    "stell mir fragen",
+    "führ mich",
+    "guiding",
+    "plan",
+    "erst fragen",
+    "schritt für schritt",
+  ];
+  if (modeRequestTokens.some((token) => normalized.includes(token))) {
+    return {
+      intent: INTENT_TYPES.MODE_REQUEST,
+      confidence: 0.8,
+      frustration: false,
+      preferenceSignals: {
+        conversation: { desiredMode: "onboarding", wantsGuidedQuestions: true },
+        product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [] },
+        style: { vibe: ["collaborative"] },
+      },
+    } as const;
+  }
+
+  const metaTokens = ["eigentlich", "vorher mal", "lass uns erst", "bevor wir", "kannst du kurz sagen", "metakommunikation"];
+  if (metaTokens.some((token) => normalized.includes(token))) {
+    return {
+      intent: INTENT_TYPES.META_COMMUNICATION,
+      confidence: 0.7,
+      frustration: false,
+      preferenceSignals: {
+        conversation: { desiredMode: "onboarding", detailLevel: "balanced" },
+        product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [] },
+        style: { vibe: ["patient"] },
+      },
+    } as const;
   }
 
   const frustrationTokens = ["useless", "broken", "frustrating", "doesn't work", "not working", "you failed", "kaputt", "funktioniert nicht", "geht nicht", "nervig"];
@@ -116,7 +230,7 @@ export const detectIntent = (input = "") => {
   }
 
   const preferenceSignals = extractPreferenceSignals(normalized);
-  if (preferenceSignals.preferredCategories.length > 0) {
+  if (preferenceSignals.product.preferredCategories.length > 0) {
     return {
       intent: INTENT_TYPES.PREFERENCE_CHANGE,
       confidence: 0.78,
@@ -124,7 +238,7 @@ export const detectIntent = (input = "") => {
       preferenceSignals,
     } as const;
   }
-  if (preferenceSignals.excludedCategories.length > 0) {
+  if (preferenceSignals.product.excludedCategories.length > 0) {
     return {
       intent: INTENT_TYPES.CONSTRAINT_UPDATE,
       confidence: 0.72,
@@ -137,7 +251,7 @@ export const detectIntent = (input = "") => {
     return { intent: INTENT_TYPES.NEEDS_CLARIFICATION, confidence: 0.6, frustration: false } as const;
   }
 
-  return { intent: INTENT_TYPES.INFORMATION, confidence: 0.65, frustration: false } as const;
+  return { intent: INTENT_TYPES.INFORMATION, confidence: 0.65, frustration: false, preferenceSignals } as const;
 };
 
 export class PreferenceConstraintState {
@@ -145,12 +259,27 @@ export class PreferenceConstraintState {
 
   constructor(initialState: Partial<PreferenceConstraintStateData> = {}) {
     this.state = {
-      preferredCategories: [],
-      excludedCategories: [],
-      preferredAttributes: [],
-      excludedAttributes: [],
-      filters: {},
-      ...initialState,
+      product: {
+        preferredCategories: [],
+        excludedCategories: [],
+        preferredAttributes: [],
+        excludedAttributes: [],
+        budget: undefined,
+        useCases: [],
+        ...(initialState.product || {}),
+      },
+      conversation: {
+        knowledgeLevel: initialState.conversation?.knowledgeLevel,
+        desiredMode: initialState.conversation?.desiredMode,
+        detailLevel: initialState.conversation?.detailLevel,
+        tone: initialState.conversation?.tone,
+        wantsGuidedQuestions: initialState.conversation?.wantsGuidedQuestions,
+      },
+      style: {
+        vibe: initialState.style?.vibe || [],
+        brevity: initialState.style?.brevity,
+      },
+      filters: initialState.filters || {},
     };
   }
 
@@ -161,11 +290,21 @@ export class PreferenceConstraintState {
     return this.state;
   }
 
-  mergeSignals({ preferredCategories = [], excludedCategories = [], preferredAttributes = [], excludedAttributes = [] }: Partial<PreferenceConstraintStateData>) {
-    this.state.preferredCategories = mergeUnique(this.state.preferredCategories, preferredCategories);
-    this.state.excludedCategories = mergeUnique(this.state.excludedCategories, excludedCategories);
-    this.state.preferredAttributes = mergeUnique(this.state.preferredAttributes, preferredAttributes);
-    this.state.excludedAttributes = mergeUnique(this.state.excludedAttributes, excludedAttributes);
+  mergeSignals(signals: Partial<PreferenceConstraintStateData>) {
+    const product = signals.product || {};
+    this.state.product.preferredCategories = mergeUnique(this.state.product.preferredCategories, product.preferredCategories || []);
+    this.state.product.excludedCategories = mergeUnique(this.state.product.excludedCategories, product.excludedCategories || []);
+    this.state.product.preferredAttributes = mergeUnique(this.state.product.preferredAttributes, product.preferredAttributes || []);
+    this.state.product.excludedAttributes = mergeUnique(this.state.product.excludedAttributes, product.excludedAttributes || []);
+    this.state.product.useCases = mergeUnique(this.state.product.useCases || [], product.useCases || []);
+    this.state.product.budget = this.state.product.budget || product.budget;
+
+    const conversation = signals.conversation || {};
+    this.state.conversation = { ...this.state.conversation, ...conversation };
+
+    const style = signals.style || {};
+    this.state.style.vibe = mergeUnique(this.state.style.vibe || [], style.vibe || []);
+    this.state.style.brevity = style.brevity || this.state.style.brevity;
   }
 
   getState() {
@@ -183,20 +322,44 @@ const ENTITY_INTENTS = [
   INTENT_TYPES.FRUSTRATION,
 ] as const;
 
-export const needsEntities = (intentType?: IntentLiteral) =>
-  intentType ? (ENTITY_INTENTS as ReadonlyArray<string>).includes(intentType) : false;
+export const isSearchIntent = (intentType?: IntentLiteral) =>
+  intentType ? (ENTITY_INTENTS as ReadonlyArray<IntentLiteral>).includes(intentType) : false;
 
-export const applyPreferencesToItems = (items: any[] = [], preferenceState: PreferenceConstraintStateData = {
-  preferredCategories: [],
-  excludedCategories: [],
-  preferredAttributes: [],
-  excludedAttributes: [],
-  filters: {},
-}) => {
-  const excludedCategories = new Set((preferenceState.excludedCategories || []).map((c) => normalizeTokens(c)));
-  const excludedAttributes = new Set((preferenceState.excludedAttributes || []).map((c) => normalizeTokens(c)));
-  const preferredCategories = new Set((preferenceState.preferredCategories || []).map((c) => normalizeTokens(c)));
-  const preferredAttributes = new Set((preferenceState.preferredAttributes || []).map((c) => normalizeTokens(c)));
+export const hasStructuredProductRequirement = (preferenceState?: PreferenceConstraintStateData) => {
+  if (!preferenceState) return false;
+  const product = preferenceState.product || {
+    preferredCategories: [],
+    excludedCategories: [],
+    preferredAttributes: [],
+    excludedAttributes: [],
+    useCases: [],
+  };
+  return Boolean(
+    (product.preferredCategories && product.preferredCategories.length > 0) ||
+      (product.excludedCategories && product.excludedCategories.length > 0) ||
+      (product.preferredAttributes && product.preferredAttributes.length > 0) ||
+      (product.excludedAttributes && product.excludedAttributes.length > 0) ||
+      (product.useCases && product.useCases.length > 0) ||
+      product.budget,
+  );
+};
+
+export const needsEntities = (intentType?: IntentLiteral, preferenceState?: PreferenceConstraintStateData) =>
+  isSearchIntent(intentType) && hasStructuredProductRequirement(preferenceState);
+
+export const applyPreferencesToItems = (
+  items: any[] = [],
+  preferenceState: PreferenceConstraintStateData = {
+    product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] },
+    conversation: {},
+    style: {},
+  },
+) => {
+  const product = preferenceState.product || { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] };
+  const excludedCategories = new Set((product.excludedCategories || []).map((c) => normalizeTokens(c)));
+  const excludedAttributes = new Set((product.excludedAttributes || []).map((c) => normalizeTokens(c)));
+  const preferredCategories = new Set((product.preferredCategories || []).map((c) => normalizeTokens(c)));
+  const preferredAttributes = new Set((product.preferredAttributes || []).map((c) => normalizeTokens(c)));
 
   const filtered = items.filter((item) => {
     const cat = item.category ? normalizeTokens(item.category) : null;
@@ -234,22 +397,28 @@ export const applyPreferencesToItems = (items: any[] = [], preferenceState: Pref
   return ranked;
 };
 
-const isStateEqual = (a: PreferenceConstraintStateData = {
-  preferredCategories: [],
-  excludedCategories: [],
-  preferredAttributes: [],
-  excludedAttributes: [],
-}, b: PreferenceConstraintStateData = {
-  preferredCategories: [],
-  excludedCategories: [],
-  preferredAttributes: [],
-  excludedAttributes: [],
-}) => {
-  return ["preferredCategories", "excludedCategories", "preferredAttributes", "excludedAttributes"].every((key) => {
-    const arrA = ((a as any)[key] || []).map(normalizeTokens).sort();
-    const arrB = ((b as any)[key] || []).map(normalizeTokens).sort();
+const isStateEqual = (
+  a: PreferenceConstraintStateData = {
+    product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] },
+    conversation: {},
+    style: {},
+  },
+  b: PreferenceConstraintStateData = {
+    product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] },
+    conversation: {},
+    style: {},
+  },
+) => {
+  const productKeys = ["preferredCategories", "excludedCategories", "preferredAttributes", "excludedAttributes", "useCases"] as const;
+  const productEqual = productKeys.every((key) => {
+    const arrA = ((a.product as any)[key] || []).map(normalizeTokens).sort();
+    const arrB = ((b.product as any)[key] || []).map(normalizeTokens).sort();
     return arrA.length === arrB.length && arrA.every((val: string, idx: number) => val === arrB[idx]);
   });
+  const conversationEqual =
+    (a.conversation?.desiredMode || "") === (b.conversation?.desiredMode || "") &&
+    (a.conversation?.knowledgeLevel || "") === (b.conversation?.knowledgeLevel || "");
+  return productEqual && conversationEqual;
 };
 
 export type OfferHistoryEntry = {
