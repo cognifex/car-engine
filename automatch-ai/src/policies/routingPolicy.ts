@@ -16,6 +16,7 @@ export type RoutingInputs = {
   offerCount?: number;
   relevanceScore?: number;
   needsClarification?: boolean;
+  repeatWithChangedConstraints?: boolean;
 };
 
 export type RoutingDecision = {
@@ -30,7 +31,8 @@ export const evaluateRouting = (
   const offerCount = inputs.offerCount || 0;
   const no_relevant_results = offerCount === 0;
   const clarification_required = Boolean(inputs.needsClarification);
-  const fallback_used = Boolean(inputs.relevanceScore && inputs.relevanceScore < config.clarificationThreshold);
+  const fallback_used =
+    Boolean(inputs.relevanceScore && inputs.relevanceScore < config.clarificationThreshold) || Boolean(inputs.repeatWithChangedConstraints);
 
   const strict_matching = config.allowStrictMatching && !clarification_required && !fallback_used;
 

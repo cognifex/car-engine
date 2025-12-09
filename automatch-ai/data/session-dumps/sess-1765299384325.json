@@ -1,0 +1,601 @@
+{
+  "metadata": {
+    "sessionId": "sess-1765299384325",
+    "startedAt": "2025-12-09T16:56:24.326Z",
+    "completedAt": "2025-12-09T16:56:24.408Z",
+    "modelId": "graph-jeep",
+    "redacted": false
+  },
+  "conversation": [
+    {
+      "id": "turn-1-user",
+      "role": "user",
+      "text": "zeige jeep modelle",
+      "timestamp": "2025-12-09T16:56:24.333Z"
+    },
+    {
+      "id": "turn-1-assistant",
+      "role": "assistant",
+      "text": "Ich habe 5 Ergebnisse zusammengestellt.",
+      "timestamp": "2025-12-09T16:56:24.408Z"
+    }
+  ],
+  "turns": [
+    {
+      "turnId": "turn-1",
+      "startedAt": "2025-12-09T16:56:24.333Z",
+      "endedAt": "2025-12-09T16:56:24.408Z",
+      "userMessage": "zeige jeep modelle",
+      "reply": "Ich habe 5 Ergebnisse zusammengestellt.",
+      "followUp": "",
+      "nodes": [
+        {
+          "name": "clientEvent",
+          "input": {
+            "events": []
+          },
+          "output": {
+            "imageFailures": 0,
+            "failedModels": [],
+            "networkChanged": false,
+            "resultsNotVisible": false
+          },
+          "startedAt": "2025-12-09T16:56:24.359Z",
+          "endedAt": "2025-12-09T16:56:24.359Z",
+          "durationMs": 0
+        },
+        {
+          "name": "intentParser",
+          "input": {
+            "message": "zeige jeep modelle",
+            "uiState": {
+              "imageFailures": 0,
+              "failedModels": [],
+              "networkChanged": false,
+              "resultsNotVisible": false
+            }
+          },
+          "output": {
+            "intent": "informational",
+            "frustration": false,
+            "confidence": 0.65
+          },
+          "startedAt": "2025-12-09T16:56:24.366Z",
+          "endedAt": "2025-12-09T16:56:24.366Z",
+          "durationMs": 0
+        },
+        {
+          "name": "preferenceState",
+          "input": {
+            "intent": {
+              "intent": "informational",
+              "frustration": false,
+              "confidence": 0.65
+            }
+          },
+          "output": {
+            "preferenceState": {
+              "preferredCategories": [],
+              "excludedCategories": [],
+              "preferredAttributes": [],
+              "excludedAttributes": [],
+              "filters": {}
+            }
+          },
+          "startedAt": "2025-12-09T16:56:24.371Z",
+          "endedAt": "2025-12-09T16:56:24.371Z",
+          "durationMs": 0
+        },
+        {
+          "name": "entityFetch",
+          "input": {
+            "preferenceState": {
+              "preferredCategories": [],
+              "excludedCategories": [],
+              "preferredAttributes": [],
+              "excludedAttributes": [],
+              "filters": {}
+            }
+          },
+          "output": {
+            "entities": [
+              {
+                "id": "jeep-wrangler-2024",
+                "title": "Jeep Wrangler Rubicon",
+                "category": "4x4, Untersetzung",
+                "year": "2024",
+                "summary": "Ikonischer Offroader mit entfernbaren Türen und Dach, maximiert auf Trails und Fels.",
+                "attributes": [
+                  "200 kW (272 PS)",
+                  "4x4, Untersetzung",
+                  "Benzin"
+                ],
+                "image": "https://images.unsplash.com/photo-1617469165785-6f8fbd3d7321?auto=format&fit=crop&w=800&q=60"
+              },
+              {
+                "id": "jeep-grand-cherokee-2024",
+                "title": "Jeep Grand Cherokee 4xe",
+                "category": "Allrad, Luftfederung optional",
+                "year": "2024",
+                "summary": "Komfortabler Langstrecken-SUV mit E-Boost und echter Jeep-Geländefähigkeit.",
+                "attributes": [
+                  "280 kW (380 PS) Systemleistung",
+                  "Allrad, Luftfederung optional",
+                  "Plug-in-Hybrid"
+                ],
+                "image": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60"
+              },
+              {
+                "id": "jeep-compass-2023",
+                "title": "Jeep Compass Trailhawk",
+                "category": "4x4 mit Terrain-Select",
+                "year": "2023",
+                "summary": "Kompakter SUV, ausgewogen zwischen Stadt und Waldwegen, mit Trailhawk-Offroad-Modus.",
+                "attributes": [
+                  "176 kW (239 PS)",
+                  "4x4 mit Terrain-Select",
+                  "Plug-in-Hybrid"
+                ],
+                "image": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60"
+              },
+              {
+                "id": "jeep-renegade-2022",
+                "title": "Jeep Renegade Upland",
+                "category": "Front- oder Allrad je nach Ausführung",
+                "year": "2022",
+                "summary": "Kleinster Jeep mit hohem Nutzwert in der Stadt, dennoch mit markentypischer Sitzposition und Bodenfreiheit.",
+                "attributes": [
+                  "96 kW (130 PS)",
+                  "Front- oder Allrad je nach Ausführung",
+                  "Benzin / Diesel"
+                ],
+                "image": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60"
+              },
+              {
+                "id": "jeep-avenger-2024",
+                "title": "Jeep Avenger",
+                "category": "Frontantrieb, elektrische Version verfügbar",
+                "year": "2024",
+                "summary": "Vollelektrischer City-SUV mit Jeep-Designsprache und kompaktem Footprint.",
+                "attributes": [
+                  "115 kW (156 PS)",
+                  "Frontantrieb, elektrische Version verfügbar",
+                  "Elektro"
+                ],
+                "image": "https://images.unsplash.com/photo-1525609004556-c46c7d6cf023?auto=format&fit=crop&w=800&q=60"
+              }
+            ]
+          },
+          "startedAt": "2025-12-09T16:56:24.376Z",
+          "endedAt": "2025-12-09T16:56:24.376Z",
+          "durationMs": 0
+        },
+        {
+          "name": "routing",
+          "input": {
+            "intent": {
+              "intent": "informational",
+              "frustration": false,
+              "confidence": 0.65
+            },
+            "offers": 5
+          },
+          "output": {
+            "route": {
+              "includeKnowledge": true,
+              "includeVisuals": true,
+              "includeMatching": true,
+              "includeOffers": true,
+              "strictOffers": true,
+              "retryMatching": false
+            },
+            "content_state": {
+              "has_results": true,
+              "num_results": 5,
+              "clarification_required": false,
+              "no_relevant_results": false,
+              "fallback_used": false,
+              "strict_matching": true,
+              "notes": []
+            }
+          },
+          "startedAt": "2025-12-09T16:56:24.381Z",
+          "endedAt": "2025-12-09T16:56:24.381Z",
+          "durationMs": 0
+        },
+        {
+          "name": "uiHealth",
+          "input": {
+            "uiState": {
+              "imageFailures": 0,
+              "failedModels": [],
+              "networkChanged": false,
+              "resultsNotVisible": false
+            },
+            "events": []
+          },
+          "output": {
+            "degraded_mode": false,
+            "render_text_only": false,
+            "show_banner": false,
+            "severity": "info",
+            "signals": {
+              "imageFailures": 0,
+              "networkChanged": false,
+              "resultsNotVisible": false,
+              "agentFailures": 0
+            }
+          },
+          "startedAt": "2025-12-09T16:56:24.384Z",
+          "endedAt": "2025-12-09T16:56:24.384Z",
+          "durationMs": 0
+        },
+        {
+          "name": "clarification",
+          "input": {},
+          "output": {
+            "skipped": true
+          },
+          "startedAt": "2025-12-09T16:56:24.388Z",
+          "endedAt": "2025-12-09T16:56:24.388Z",
+          "durationMs": 0
+        },
+        {
+          "name": "response",
+          "input": {
+            "content_state": {
+              "has_results": true,
+              "num_results": 5,
+              "clarification_required": false,
+              "no_relevant_results": false,
+              "fallback_used": false,
+              "strict_matching": true,
+              "notes": [],
+              "repeat_with_changed_constraints": false
+            },
+            "uiHealth": {
+              "degraded_mode": false,
+              "render_text_only": false,
+              "show_banner": false,
+              "severity": "info",
+              "signals": {
+                "imageFailures": 0,
+                "networkChanged": false,
+                "resultsNotVisible": false,
+                "agentFailures": 0
+              }
+            }
+          },
+          "output": {
+            "reply": "Ich habe 5 Ergebnisse zusammengestellt.",
+            "followUp": ""
+          },
+          "startedAt": "2025-12-09T16:56:24.392Z",
+          "endedAt": "2025-12-09T16:56:24.392Z",
+          "durationMs": 0
+        }
+      ],
+      "intent": {
+        "intent": "informational",
+        "frustration": false,
+        "confidence": 0.65
+      },
+      "routing": {
+        "includeKnowledge": true,
+        "includeVisuals": true,
+        "includeMatching": true,
+        "includeOffers": true,
+        "strictOffers": true,
+        "retryMatching": false
+      },
+      "offers": [
+        {
+          "title": "Jeep Wrangler Rubicon",
+          "model": "Jeep Wrangler Rubicon",
+          "price": 0,
+          "dealer": "Datenquelle",
+          "link": "",
+          "image_url": "https://images.unsplash.com/photo-1617469165785-6f8fbd3d7321?auto=format&fit=crop&w=800&q=60",
+          "location": "",
+          "mileage": "",
+          "badge": "200 kW (272 PS) • 4x4, Untersetzung • Benzin",
+          "created_at": "2025-12-09T16:56:24.380Z",
+          "vin": "jeep-wrangler-2024",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "generic-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Jeep Grand Cherokee 4xe",
+          "model": "Jeep Grand Cherokee 4xe",
+          "price": 0,
+          "dealer": "Datenquelle",
+          "link": "",
+          "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60",
+          "location": "",
+          "mileage": "",
+          "badge": "280 kW (380 PS) Systemleistung • Allrad, Luftfederung optional • Plug-in-Hybrid",
+          "created_at": "2025-12-09T16:56:24.380Z",
+          "vin": "jeep-grand-cherokee-2024",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "generic-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Jeep Compass Trailhawk",
+          "model": "Jeep Compass Trailhawk",
+          "price": 0,
+          "dealer": "Datenquelle",
+          "link": "",
+          "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60",
+          "location": "",
+          "mileage": "",
+          "badge": "176 kW (239 PS) • 4x4 mit Terrain-Select • Plug-in-Hybrid",
+          "created_at": "2025-12-09T16:56:24.380Z",
+          "vin": "jeep-compass-2023",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "generic-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Jeep Renegade Upland",
+          "model": "Jeep Renegade Upland",
+          "price": 0,
+          "dealer": "Datenquelle",
+          "link": "",
+          "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60",
+          "location": "",
+          "mileage": "",
+          "badge": "96 kW (130 PS) • Front- oder Allrad je nach Ausführung • Benzin / Diesel",
+          "created_at": "2025-12-09T16:56:24.380Z",
+          "vin": "jeep-renegade-2022",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "generic-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Jeep Avenger",
+          "model": "Jeep Avenger",
+          "price": 0,
+          "dealer": "Datenquelle",
+          "link": "",
+          "image_url": "https://images.unsplash.com/photo-1525609004556-c46c7d6cf023?auto=format&fit=crop&w=800&q=60",
+          "location": "",
+          "mileage": "",
+          "badge": "115 kW (156 PS) • Frontantrieb, elektrische Version verfügbar • Elektro",
+          "created_at": "2025-12-09T16:56:24.380Z",
+          "vin": "jeep-avenger-2024",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "generic-catalog",
+          "fallbackReason": ""
+        }
+      ],
+      "offersHistory": [],
+      "content": {
+        "offers": [
+          {
+            "title": "Jeep Wrangler Rubicon",
+            "model": "Jeep Wrangler Rubicon",
+            "price": 0,
+            "dealer": "Datenquelle",
+            "link": "",
+            "image_url": "https://images.unsplash.com/photo-1617469165785-6f8fbd3d7321?auto=format&fit=crop&w=800&q=60",
+            "location": "",
+            "mileage": "",
+            "badge": "200 kW (272 PS) • 4x4, Untersetzung • Benzin",
+            "created_at": "2025-12-09T16:56:24.380Z",
+            "vin": "jeep-wrangler-2024",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "generic-catalog",
+            "fallbackReason": ""
+          },
+          {
+            "title": "Jeep Grand Cherokee 4xe",
+            "model": "Jeep Grand Cherokee 4xe",
+            "price": 0,
+            "dealer": "Datenquelle",
+            "link": "",
+            "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60",
+            "location": "",
+            "mileage": "",
+            "badge": "280 kW (380 PS) Systemleistung • Allrad, Luftfederung optional • Plug-in-Hybrid",
+            "created_at": "2025-12-09T16:56:24.380Z",
+            "vin": "jeep-grand-cherokee-2024",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "generic-catalog",
+            "fallbackReason": ""
+          },
+          {
+            "title": "Jeep Compass Trailhawk",
+            "model": "Jeep Compass Trailhawk",
+            "price": 0,
+            "dealer": "Datenquelle",
+            "link": "",
+            "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60",
+            "location": "",
+            "mileage": "",
+            "badge": "176 kW (239 PS) • 4x4 mit Terrain-Select • Plug-in-Hybrid",
+            "created_at": "2025-12-09T16:56:24.380Z",
+            "vin": "jeep-compass-2023",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "generic-catalog",
+            "fallbackReason": ""
+          },
+          {
+            "title": "Jeep Renegade Upland",
+            "model": "Jeep Renegade Upland",
+            "price": 0,
+            "dealer": "Datenquelle",
+            "link": "",
+            "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60",
+            "location": "",
+            "mileage": "",
+            "badge": "96 kW (130 PS) • Front- oder Allrad je nach Ausführung • Benzin / Diesel",
+            "created_at": "2025-12-09T16:56:24.380Z",
+            "vin": "jeep-renegade-2022",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "generic-catalog",
+            "fallbackReason": ""
+          },
+          {
+            "title": "Jeep Avenger",
+            "model": "Jeep Avenger",
+            "price": 0,
+            "dealer": "Datenquelle",
+            "link": "",
+            "image_url": "https://images.unsplash.com/photo-1525609004556-c46c7d6cf023?auto=format&fit=crop&w=800&q=60",
+            "location": "",
+            "mileage": "",
+            "badge": "115 kW (156 PS) • Frontantrieb, elektrische Version verfügbar • Elektro",
+            "created_at": "2025-12-09T16:56:24.380Z",
+            "vin": "jeep-avenger-2024",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "generic-catalog",
+            "fallbackReason": ""
+          }
+        ],
+        "visuals": [
+          "https://images.unsplash.com/photo-1617469165785-6f8fbd3d7321?auto=format&fit=crop&w=800&q=60",
+          "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60",
+          "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60",
+          "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60",
+          "https://images.unsplash.com/photo-1525609004556-c46c7d6cf023?auto=format&fit=crop&w=800&q=60"
+        ],
+        "definition": "Generische Übersicht"
+      },
+      "uiPresentedOffers": [
+        {
+          "title": "Jeep Wrangler Rubicon",
+          "model": "Jeep Wrangler Rubicon",
+          "price": 0,
+          "dealer": "Datenquelle",
+          "link": "",
+          "image_url": "https://images.unsplash.com/photo-1617469165785-6f8fbd3d7321?auto=format&fit=crop&w=800&q=60",
+          "location": "",
+          "mileage": "",
+          "badge": "200 kW (272 PS) • 4x4, Untersetzung • Benzin",
+          "created_at": "2025-12-09T16:56:24.380Z",
+          "vin": "jeep-wrangler-2024",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "generic-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Jeep Grand Cherokee 4xe",
+          "model": "Jeep Grand Cherokee 4xe",
+          "price": 0,
+          "dealer": "Datenquelle",
+          "link": "",
+          "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60",
+          "location": "",
+          "mileage": "",
+          "badge": "280 kW (380 PS) Systemleistung • Allrad, Luftfederung optional • Plug-in-Hybrid",
+          "created_at": "2025-12-09T16:56:24.380Z",
+          "vin": "jeep-grand-cherokee-2024",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "generic-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Jeep Compass Trailhawk",
+          "model": "Jeep Compass Trailhawk",
+          "price": 0,
+          "dealer": "Datenquelle",
+          "link": "",
+          "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60",
+          "location": "",
+          "mileage": "",
+          "badge": "176 kW (239 PS) • 4x4 mit Terrain-Select • Plug-in-Hybrid",
+          "created_at": "2025-12-09T16:56:24.380Z",
+          "vin": "jeep-compass-2023",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "generic-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Jeep Renegade Upland",
+          "model": "Jeep Renegade Upland",
+          "price": 0,
+          "dealer": "Datenquelle",
+          "link": "",
+          "image_url": "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=800&q=60",
+          "location": "",
+          "mileage": "",
+          "badge": "96 kW (130 PS) • Front- oder Allrad je nach Ausführung • Benzin / Diesel",
+          "created_at": "2025-12-09T16:56:24.380Z",
+          "vin": "jeep-renegade-2022",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "generic-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Jeep Avenger",
+          "model": "Jeep Avenger",
+          "price": 0,
+          "dealer": "Datenquelle",
+          "link": "",
+          "image_url": "https://images.unsplash.com/photo-1525609004556-c46c7d6cf023?auto=format&fit=crop&w=800&q=60",
+          "location": "",
+          "mileage": "",
+          "badge": "115 kW (156 PS) • Frontantrieb, elektrische Version verfügbar • Elektro",
+          "created_at": "2025-12-09T16:56:24.380Z",
+          "vin": "jeep-avenger-2024",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "generic-catalog",
+          "fallbackReason": ""
+        }
+      ],
+      "semanticallyFocusedModels": [
+        "Jeep Wrangler Rubicon",
+        "Jeep Grand Cherokee 4xe",
+        "Jeep Compass Trailhawk",
+        "Jeep Renegade Upland",
+        "Jeep Avenger"
+      ],
+      "clientEvents": [],
+      "uiState": {
+        "imageFailures": 0,
+        "failedModels": [],
+        "networkChanged": false,
+        "resultsNotVisible": false
+      },
+      "uiRecovery": {
+        "renderTextOnly": false,
+        "degradedMode": false,
+        "showBanner": false
+      }
+    }
+  ],
+  "errors": [],
+  "clientEvents": []
+}

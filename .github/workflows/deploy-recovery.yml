@@ -1,0 +1,91 @@
+name: Deploy Recovery
+
+on:
+  workflow_run:
+    workflows: ["Deploy to VPS"]
+    types:
+      - completed
+
+jobs:
+  recovery:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate UUID
+        id: uuid
+        run: echo "uuid=$(uuidgen)" >> $GITHUB_OUTPUT
+
+      - name: Start SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
+
+      - name: Create local dump folder
+        run: mkdir -p dump
+
+      - name: Download deploy-failure-log artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: deploy-failure-log
+          path: dump/
+
+      - name: Collect detailed dump from VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST << 'EOF'
+            set -euo pipefail
+
+            mkdir -p /tmp/deploy-dump
+
+            echo "===== DEPLOY FAILURE DUMP =====" > /tmp/deploy-dump/info.txt
+            echo "UUID: ${{ steps.uuid.outputs.uuid }}" >> /tmp/deploy-dump/info.txt
+            echo "Timestamp: $(date)" >> /tmp/deploy-dump/info.txt
+            echo "Commit: ${{ github.event.workflow_run.head_sha }}" >> /tmp/deploy-dump/info.txt
+
+            echo "--- Docker Compose Status ---" >> /tmp/deploy-dump/docker-compose.txt
+            docker compose ps -a >> /tmp/deploy-dump/docker-compose.txt 2>&1
+
+            echo "--- Docker Container Logs ---" > /tmp/deploy-dump/docker-logs.txt
+            docker compose logs --tail=300 >> /tmp/deploy-dump/docker-logs.txt 2>&1
+
+            echo "--- System Information ---" > /tmp/deploy-dump/system-info.txt
+            uname -a >> /tmp/deploy-dump/system-info.txt
+            df -h >> /tmp/deploy-dump/system-info.txt
+            free -m >> /tmp/deploy-dump/system-info.txt
+            top -b -n1 | head -n 30 >> /tmp/deploy-dump/system-info.txt
+
+            echo "--- Git Status on VPS ---" > /tmp/deploy-dump/git-status.txt
+            cd /opt/car-engine
+            git status -s >> /tmp/deploy-dump/git-status.txt 2>&1
+            git log -1 >> /tmp/deploy-dump/git-status.txt 2>&1
+          EOF
+
+      - name: Copy VPS dump files to local runner
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          scp -o StrictHostKeyChecking=no -r \
+          $VPS_USER@$VPS_HOST:/tmp/deploy-dump/* dump/
+
+      - name: Zip full dump
+        run: zip -r deploy_dump_${{ steps.uuid.outputs.uuid }}.zip dump/
+
+      - name: Upload dump to VPS
+        uses: appleboy/scp-action@v0.1.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "deploy_dump_${{ steps.uuid.outputs.uuid }}.zip"
+          target: "/opt/car-engine/deploy-dumps/"
+
+      - name: Cleanup VPS temporary files
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "rm -rf /tmp/deploy-dump"

@@ -28,6 +28,14 @@ export const intentSchema = z.object({
     "dissatisfaction",
     "ui_mismatch",
     "unknown",
+    "informational",
+    "affirmation",
+    "preference_change",
+    "constraint_update",
+    "feedback_positive",
+    "feedback_negative",
+    "frustration",
+    "small_talk",
   ]),
   fields: z
     .array(
@@ -181,6 +189,7 @@ export interface ContentState {
   no_relevant_results: boolean;
   fallback_used: boolean;
   strict_matching: boolean;
+  repeat_with_changed_constraints?: boolean;
   notes?: string[];
 }
 
@@ -246,4 +255,6 @@ export interface ConversationState extends Record<string, unknown> {
   uiRecovery?: UIRecoveryInstruction;
   content_state?: ContentState;
   ui_health?: UIHealth;
+  preferenceState?: Record<string, unknown>;
+  offersHistory?: Record<string, unknown>[];
 }

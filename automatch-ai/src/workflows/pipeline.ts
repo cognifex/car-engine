@@ -6,7 +6,7 @@ import { buildGraph } from "./graph.js";
 export const runPipeline = async (
   userMessage: string,
   history: ConversationMessage[] = [],
-  options: { sessionId?: string; redacted?: boolean; clientEvents?: ClientEvent[] } = {},
+  options: { sessionId?: string; redacted?: boolean; clientEvents?: ClientEvent[]; preferenceState?: Record<string, unknown>; offersHistory?: any[] } = {},
 ): Promise<ConversationState> => {
   const sessionId = options.sessionId || `sess-${Date.now()}`;
   const collector = new SessionTraceCollector({
@@ -23,6 +23,8 @@ export const runPipeline = async (
     history,
     debugLogs: [],
     clientEvents: options.clientEvents || [],
+    preferenceState: options.preferenceState as any,
+    offersHistory: options.offersHistory as any,
   };
 
   logger.info({ userMessage, sessionId }, "Starting AutoMatch AI graph run");

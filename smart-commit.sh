@@ -23,52 +23,16 @@ if [ -z "$DIFF" ]; then
 fi
 
 #########################################
-# 3) KI-Commit-Message versuchen
+# 3) Commit-Message aus Dateiliste + Timestamp
 #########################################
 
-MESSAGE=""
+# erste 3 geänderte Dateien holen
+FILE_SUMMARY=$(git diff --cached --name-only | head -n 3 | sed 's/\..*//' | tr '/\n' ' ' | xargs)
 
-if [ ! -z "$OPENAI_API_KEY" ]; then
-  echo "🧠 Versuche Commit-Message mit KI zu erzeugen…"
+# Timestamp bauen
+TS=$(date +"%Y-%m-%d_%H-%M-%S")
 
-  RAW_RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
-    -H "Content-Type: application/json" \
-    -H "Authorization: Bearer $OPENAI_API_KEY" \
-    -d "{
-      \"model\": \"gpt-4o-mini\",
-      \"messages\": [
-        {
-          \"role\": \"system\",
-          \"content\": \"Fasse die folgenden Git-Änderungen in max. 10, besser 5 Wörtern zusammen. Nur die Commit-Message, ohne Satzzeichen, ohne Anführungszeichen.\"
-        },
-        {
-          \"role\": \"user\",
-          \"content\": ${DIFF@Q}
-        }
-      ]
-    }")
-
-  # JSON response extrahieren
-  MESSAGE=$(echo "$RAW_RESPONSE" | jq -r '.choices[0].message.content' 2>/dev/null || echo "")
-
-  # Wenn API error oder kein Ergebnis → MESSAGE bleibt leer
-fi
-
-#########################################
-# 4) Fallback, wenn KI nicht funktioniert
-#########################################
-
-if [ -z "$MESSAGE" ] || [ "$MESSAGE" = "null" ]; then
-  echo "⚠️  KI-Antwort fehlgeschlagen, nutze Fallback."
-
-  # erste 3 geänderte Dateien holen
-  FILE_SUMMARY=$(git diff --cached --name-only | head -n 3 | sed 's/\..*//' | tr '/\n' ' ' | xargs)
-
-  # Timestamp bauen
-  TS=$(date +"%Y-%m-%d_%H-%M-%S")
-
-  MESSAGE="${FILE_SUMMARY:-update} ${TS}"
-fi
+MESSAGE="${FILE_SUMMARY:-update} ${TS}"
 
 #########################################
 # 5) Commit + Push

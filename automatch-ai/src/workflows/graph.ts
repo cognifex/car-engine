@@ -12,8 +12,21 @@ import { SessionTraceCollector } from "../utils/sessionDump.js";
 import { findJeepModels } from "../utils/jeepCatalog.js";
 import { evaluateUiHealth } from "../policies/uiHealthPolicy.js";
 import { evaluateRouting } from "../policies/routingPolicy.js";
+import {
+  INTENT_TYPES,
+  OffersHistory,
+  PreferenceConstraintState,
+  PreferenceConstraintStateData,
+  applyPreferencesToItems,
+  detectIntent,
+  needsEntities,
+} from "../utils/preferences.js";
 
-export type GraphState = ConversationState & Record<string, unknown>;
+export type GraphState = ConversationState &
+  Record<string, unknown> & {
+    preferenceState?: PreferenceConstraintStateData;
+    offersHistory?: { timestamp: string; items: string[]; intentType?: string; preferenceState: PreferenceConstraintStateData }[];
+  };
 
 const withLog = (state: GraphState, entry: AgentLogEntry) => ({
   debugLogs: [...(state.debugLogs || []), entry],
@@ -21,12 +34,12 @@ const withLog = (state: GraphState, entry: AgentLogEntry) => ({
 
 const deriveIntent = (state: GraphState) => {
   const msg = state.userMessage || "";
-  const frustration = /nervig|frust|funktioniert nicht|geht nicht|nichts zu sehen|warum/i.test(msg);
-  const needsClarification = !msg || msg.trim().length < 6;
-
+  const parsed = detectIntent(msg);
   return {
-    intent: needsClarification ? "needs_clarification" : "informational",
-    frustration,
+    intent: parsed.intent,
+    frustration: Boolean(parsed.frustration),
+    preferenceSignals: parsed.preferenceSignals,
+    confidence: parsed.confidence,
   } as any;
 };
 
@@ -48,6 +61,7 @@ const loadDemoEntities = () => {
   return findJeepModels().map((entry) => ({
     id: entry.id,
     title: entry.model,
+    category: entry.drivetrain || entry.fuel || entry.model,
     year: entry.year,
     summary: entry.summary,
     attributes: [entry.power, entry.drivetrain, entry.fuel].filter(Boolean),
@@ -86,18 +100,20 @@ const buildRecovery = (uiHealth: UIHealth): UIRecoveryInstruction => {
   };
 };
 
-const buildResponseText = (content_state: ContentState, uiHealth: UIHealth, frustration: boolean) => {
+const buildResponseText = (content_state: ContentState & { repeat_with_changed_constraints?: boolean }, uiHealth: UIHealth, frustration: boolean) => {
   const lines: string[] = [];
-  if (frustration && uiHealth.degraded_mode) {
-    lines.push("Ich sehe Störungen – ich halte die Darstellung stabil und bleibe bei Text.");
+  if (frustration) {
+    lines.push("Sorry für die Reibung – ich halte es kurz und stabil.");
   }
-  if (!content_state.has_results) {
-    lines.push("Keine Ergebnisse gefunden, ich bleibe in einem stabilen Textmodus.");
+  if (content_state.repeat_with_changed_constraints) {
+    lines.push("Die neuen Filter liefern dieselben Ergebnisse. Magst du die Kriterien anpassen?");
+  } else if (!content_state.has_results || content_state.no_relevant_results) {
+    lines.push("Keine passenden Ergebnisse gefunden, ich bleibe im Textmodus.");
   } else {
     lines.push(`Ich habe ${content_state.num_results} Ergebnisse zusammengestellt.`);
   }
   if (content_state.clarification_required) {
-    lines.push("Gib mir bitte noch Kontext oder Parameter, damit ich präziser werden kann.");
+    lines.push("Gib mir bitte noch Kontext oder Parameter, damit ich präziser liefern kann.");
   }
   if (uiHealth.render_text_only) {
     lines.push("Visuelle Elemente sind reduziert, bis die UI wieder stabil ist.");
@@ -121,6 +137,8 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       uiRecovery: null,
       content: null,
       response: null,
+      preferenceState: null,
+      offersHistory: null,
       debugLogs: null,
     },
   });
@@ -138,30 +156,66 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
     return { intent, ...withLog(state, { agent: "intentParser", input: { message: state.userMessage, uiState: state.uiState } as Record<string, unknown>, output: intent as Record<string, unknown> }) };
   });
 
+  graph.addNode("preferenceStateNode", async (state: GraphState) => {
+    const manager = new PreferenceConstraintState(state.preferenceState);
+    const updated = manager.updateFromIntent(state.intent as any);
+    collector?.recordNode({
+      name: "preferenceState",
+      input: { intent: state.intent } as Record<string, unknown>,
+      output: { preferenceState: updated } as Record<string, unknown>,
+    });
+    return {
+      preferenceState: manager.getState(),
+      ...withLog(state, {
+        agent: "preferenceState",
+        input: { intent: state.intent } as Record<string, unknown>,
+        output: { preferenceState: updated } as Record<string, unknown>,
+      }),
+    };
+  });
+
   graph.addNode("entityFetchNode", async (state: GraphState) => {
     const entities = loadDemoEntities();
-    collector?.recordNode({ name: "entityFetch", input: {}, output: { entities } as Record<string, unknown> });
-    return { entities, ...withLog(state, { agent: "entityFetch", input: {}, output: { entities } as Record<string, unknown> }) };
+    const preferenceState = state.preferenceState as PreferenceConstraintStateData;
+    const filteredEntities = needsEntities((state.intent as any)?.intent) ? applyPreferencesToItems(entities, preferenceState) : [];
+    collector?.recordNode({ name: "entityFetch", input: { preferenceState } as Record<string, unknown>, output: { entities: filteredEntities } as Record<string, unknown> });
+    return { entities: filteredEntities, ...withLog(state, { agent: "entityFetch", input: { preferenceState } as Record<string, unknown>, output: { entities: filteredEntities } as Record<string, unknown> }) };
   });
 
   graph.addNode("routingNode", async (state: GraphState) => {
-    const needsClarification = state.intent?.intent === "needs_clarification";
+    const needsClarification = state.intent?.intent === INTENT_TYPES.NEEDS_CLARIFICATION || state.intent?.intent === INTENT_TYPES.AFFIRMATION;
     const entityList = Array.isArray(state.entities) ? (state.entities as Record<string, unknown>[]) : [];
     const offers = buildOffersFromEntities(entityList);
+    const history = new OffersHistory(state.offersHistory as any);
+    const repeatWithChangedConstraints = history.detectRepeatWithChanges(offers, state.intent as any, (state.preferenceState || {}) as PreferenceConstraintStateData);
     const decision = evaluateRouting(
       {
         intent: state.intent as any,
         offerCount: offers.length,
         needsClarification,
+        repeatWithChangedConstraints,
       },
       undefined,
     );
+    const filteredOffers = repeatWithChangedConstraints ? [] : offers;
+    const content_state: ContentState = {
+      ...decision.content_state,
+      has_results: filteredOffers.length > 0,
+      num_results: filteredOffers.length,
+      repeat_with_changed_constraints: repeatWithChangedConstraints,
+      fallback_used: decision.content_state.fallback_used || repeatWithChangedConstraints || filteredOffers.length === 0,
+      no_relevant_results: decision.content_state.no_relevant_results || filteredOffers.length === 0,
+    } as any;
+    if (repeatWithChangedConstraints && content_state.notes) {
+      content_state.notes.push("Detected identical offers after intent/state change.");
+    }
     collector?.recordNode({ name: "routing", input: { intent: state.intent, offers: offers.length } as Record<string, unknown>, output: decision as unknown as Record<string, unknown> });
     return {
       route: decision.route,
-      content_state: decision.content_state,
-      offers,
-      ...withLog(state, { agent: "routing", input: { intent: state.intent, offers: offers.length } as Record<string, unknown>, output: decision as unknown as Record<string, unknown> }),
+      content_state,
+      offers: filteredOffers,
+      repeat_with_changed_constraints: repeatWithChangedConstraints,
+      ...withLog(state, { agent: "routing", input: { intent: state.intent, offers: offers.length } as Record<string, unknown>, output: { decision, repeatWithChangedConstraints } as unknown as Record<string, unknown> }),
     };
   });
 
@@ -195,7 +249,7 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
 
   graph.addNode("responseNode", async (state: GraphState) => {
     const uiHealth = (state.ui_health as UIHealth) || { degraded_mode: false, render_text_only: false, show_banner: false };
-    const content_state = (state.content_state as ContentState) || {
+    const content_state = (state.content_state as ContentState & { repeat_with_changed_constraints?: boolean }) || {
       has_results: false,
       num_results: 0,
       clarification_required: false,
@@ -204,6 +258,9 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       strict_matching: false,
     };
     const offers = (state.offers as any[]) || [];
+    const history = new OffersHistory(state.offersHistory as any);
+    history.record({ items: offers, intentType: (state.intent as any)?.intent, preferenceState: (state.preferenceState as PreferenceConstraintStateData) || { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [] } });
+    const offersHistory = history.snapshot();
     const reply = buildResponseText(content_state, uiHealth, Boolean(state.intent?.frustration));
     const content = {
       offers,
@@ -214,6 +271,7 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
     return {
       response: { reply, followUp: uiHealth.render_text_only ? "Visuelle Elemente sind vorübergehend deaktiviert." : "" },
       content,
+      offersHistory,
       content_state,
       ui_health: uiHealth,
       ...withLog(state, { agent: "response", input: { content_state, uiHealth } as Record<string, unknown>, output: { reply, followUp: "" } as Record<string, unknown> }),
@@ -222,7 +280,8 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
 
   graph.addEdge(START, "clientEventNode" as any);
   graph.addEdge("clientEventNode" as any, "intentParserNode" as any);
-  graph.addEdge("intentParserNode" as any, "entityFetchNode" as any);
+  graph.addEdge("intentParserNode" as any, "preferenceStateNode" as any);
+  graph.addEdge("preferenceStateNode" as any, "entityFetchNode" as any);
   graph.addEdge("entityFetchNode" as any, "routingNode" as any);
   graph.addEdge("routingNode" as any, "uiHealthPolicyNode" as any);
   graph.addEdge("uiHealthPolicyNode" as any, "clarificationNode" as any);

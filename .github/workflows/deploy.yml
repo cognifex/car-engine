@@ -75,10 +75,17 @@ jobs:
           name: deploy-failure-log
           path: logs/deploy.log
 
-      - name: Trigger Deploy Recovery Workflow
-        if: failure()
-        uses: benc-uk/workflow-dispatch@v1
-        with:
-          workflow: deploy-recovery.yml
-          token: ${{ secrets.GITHUB_TOKEN }}
-          inputs: '{ "failed_run": "${{ github.run_id }}" }'
+      # ❌ dieser Block fällt komplett weg
+      # - name: Trigger Deploy Recovery Workflow
+      #   if: failure()
+      #   ...
+
+      - name: Reset fail counter on success
+        if: success()
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          echo "Resetting deploy fail counter on VPS..."
+          ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST \
+            "echo 0 > /opt/car-engine/autofix-fail-counter"
