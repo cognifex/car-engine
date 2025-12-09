@@ -1,10 +1,10 @@
 name: Deploy to VPS
-run-name: >
-  Deploy – ${{ github.event.head_commit.message }}
+run-name: "Deploy - ${{ github.event.head_commit.message }}"
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   deploy:
@@ -19,9 +19,6 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.VPS_SSH_KEY }}
 
-      # ---------------------------------------------------------
-      # 📌 SYNC BACKEND .env FILE
-      # ---------------------------------------------------------
       - name: Create .env.backend file
         run: |
           echo "APIFY_TOKEN=${{ secrets.APIFY_TOKEN }}" > .env.backend
@@ -33,52 +30,33 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
-          scp -o StrictHostKeyChecking=no .env.backend $VPS_USER@$VPS_HOST:/opt/car-engine/.env.backend
+          scp -o StrictHostKeyChecking=no .env.backend \
+          $VPS_USER@$VPS_HOST:/opt/car-engine/.env.backend
 
-      # ---------------------------------------------------------
-      # 📌 SYNC OPENAI_KEY TO VPS (GLOBAL PROJECT KEY)
-      # ---------------------------------------------------------
       - name: Sync OpenAI key to VPS
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
           ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "
-            echo \"OPENAI_API_KEY='${{ secrets.OPENAI_API_KEY }}'\" > /opt/car-engine/.env
+            echo OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} > /opt/car-engine/.env
           "
 
-      # ---------------------------------------------------------
-      # 📌 DEPLOY
-      # ---------------------------------------------------------
       - name: Deploy via SSH
-        id: deploy-step
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
           ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST '
             set -euo pipefail
-
             cd /opt/car-engine
-
-            echo "📥 Pulling latest code..."
             git fetch origin main
             git reset --hard origin/main
-
-            echo "🐳 Rebuilding Docker Compose..."
             docker compose pull || true
             docker compose down
             docker compose up -d --build
-
-            echo "🧹 Cleanup docker images..."
             docker image prune -f
-
-            echo "🚀 Deployment complete!"
           '
-
-      # ---------------------------------------------------------
-      # 📌 SAVE DEPLOY LOG (ALWAYS)
-      # ---------------------------------------------------------
 
       - name: Create deploy log folder
         if: always()
@@ -87,7 +65,8 @@ jobs:
       - name: Capture Docker logs
         if: always()
         run: |
-          journalctl -u docker --no-pager -n 300 > logs/deploy.log || echo "No docker logs" > logs/deploy.log
+          journalctl -u docker --no-pager -n 300 > logs/deploy.log \
+          || echo "No docker logs" > logs/deploy.log
 
       - name: Upload deploy log
         if: always()
@@ -96,14 +75,11 @@ jobs:
           name: deploy-failure-log
           path: logs/deploy.log
 
-      # ---------------------------------------------------------
-      # 📌 TRIGGER RECOVERY WORKFLOW WHEN DEPLOY FAILS
-      # ---------------------------------------------------------
       - name: Trigger Deploy Recovery Workflow
         if: failure()
         uses: peter-evans/workflow-dispatch@v3
         with:
-          workflow: "deploy-recovery.yml"
+          workflow: deploy-recovery.yml
           token: ${{ secrets.GITHUB_TOKEN }}
           inputs:
             failed_run: ${{ github.run_id }}
