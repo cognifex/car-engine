@@ -41,7 +41,7 @@ const ChatMessage = ({ msg }) => {
       <div className={`max-w-[90%] md:max-w-[75%] p-3 rounded-2xl relative shadow-sm ${
         isBot ? 'bg-white border border-gray-200 text-gray-800' : 'bg-blue-600 text-white'
       }`}>
-        <p className="pr-12">{msg.text}</p>
+        <p className="pr-12 break-words">{msg.text}</p>
       </div>
     </motion.div>
   );
@@ -542,7 +542,7 @@ export default function AutoMatchPrototype() {
   };
 
   return (
-    <div ref={rootRef} className="min-h-screen bg-gray-50 font-sans text-sm text-gray-800 flex flex-col">
+    <div ref={rootRef} className="min-h-screen bg-gray-50 font-sans text-sm text-gray-800 flex flex-col overflow-x-hidden">
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -721,25 +721,25 @@ export default function AutoMatchPrototype() {
             {hasCriticalUiIssue ? (
               <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">Logs pausiert, bis die UI wieder nutzbar ist.</div>
             ) : (
-              <div className="text-xs text-gray-600 max-h-52 overflow-y-auto space-y-2">
+              <div className="text-xs text-gray-600 max-h-52 overflow-y-auto overflow-x-hidden space-y-2">
                 {agentLog.length === 0 && <div className="text-gray-400">Noch keine Log-Einträge.</div>}
                 {agentLog.map((entry, i) => (
-                  <div key={i} className="border border-gray-100 rounded-lg p-2">
+                  <div key={i} className="border border-gray-100 rounded-lg p-2 w-full">
                     <div className="text-[11px] text-gray-500 flex gap-2">
                       <span>{new Date(entry.at).toLocaleTimeString()}</span>
                       <span className="text-gray-400">Turn: {entry.turnId || "n/a"}</span>
                     </div>
-                    <div className="font-medium text-gray-800 mt-1">User: {entry.user}</div>
-                    <div className="text-gray-700">Bot: {entry.reply}</div>
+                    <div className="font-medium text-gray-800 mt-1 break-words">User: {entry.user}</div>
+                    <div className="text-gray-700 break-words">Bot: {entry.reply}</div>
                     {entry.debugLogs && entry.debugLogs.length > 0 && (
                       <div className="mt-1 space-y-1">
                         {entry.debugLogs.map((log, idx) => (
                           <div key={idx} className="bg-gray-50 border border-gray-100 rounded p-1">
                             <div className="text-[11px] font-semibold text-gray-700">{log.agent}</div>
-                            <div className="text-[11px] text-gray-600 truncate">
+                            <div className="text-[11px] text-gray-600 break-all max-w-full">
                               in: {JSON.stringify(log.input || {})}
                             </div>
-                            <div className="text-[11px] text-gray-600 truncate">
+                            <div className="text-[11px] text-gray-600 break-all max-w-full">
                               out: {JSON.stringify(log.output || {})}
                             </div>
                           </div>
