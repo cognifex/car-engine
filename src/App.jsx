@@ -78,13 +78,13 @@ export default function AutoMatchPrototype() {
   const [offers, setOffers] = useState([]);
   const [offersHistory, setOffersHistory] = useState([]);
   const [visuals, setVisuals] = useState([]);
-  const [definition, setDefinition] = useState('');
   const [inputText, setInputText] = useState(''); // New state for input
   const [isTyping, setIsTyping] = useState(false);
   const [offersLoading, setOffersLoading] = useState(false);
   const [offersUpdatedAt, setOffersUpdatedAt] = useState(null);
   const [sessionId, setSessionId] = useState(() => uuidv4());
   const [agentLog, setAgentLog] = useState([]);
+  const [consoleLogs, setConsoleLogs] = useState([]);
   const messagesEndRef = useRef(null);
 
   const formatAssistantText = (text) => (
@@ -124,17 +124,16 @@ export default function AutoMatchPrototype() {
         const res = await fetch('/api/hot-offers');
         if (!res.ok) return;
         const data = await res.json();
-        const offersSafe = data.offers || [];
-        setOffers(offersSafe);
-        if (offersSafe.length > 0) {
-          setOffersHistory(prev => [...prev, { at: new Date().toISOString(), offers: offersSafe }]);
-        }
-        setDefinition("");
-        setOffersUpdatedAt(new Date().toISOString());
-      } catch (err) {
-        console.error("Failed to load hot offers", err);
-      } finally {
-        setOffersLoading(false);
+      const offersSafe = data.offers || [];
+      setOffers(offersSafe);
+      if (offersSafe.length > 0) {
+        setOffersHistory(prev => [...prev, { at: new Date().toISOString(), offers: offersSafe }]);
+      }
+      setOffersUpdatedAt(new Date().toISOString());
+    } catch (err) {
+      console.error("Failed to load hot offers", err);
+    } finally {
+      setOffersLoading(false);
       }
     };
     loadHot();
@@ -144,6 +143,47 @@ export default function AutoMatchPrototype() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]); // Runs whenever the messages array is updated.
+
+  // Capture client-side console output for admin dumps
+  useEffect(() => {
+    const levels = ["log", "info", "warn", "error", "debug"];
+    const original = {};
+
+    const formatArg = (arg) => {
+      if (typeof arg === "string") return arg;
+      try {
+        return JSON.stringify(arg);
+      } catch {
+        return String(arg);
+      }
+    };
+
+    levels.forEach((lvl) => {
+      original[lvl] = console[lvl];
+      console[lvl] = (...args) => {
+        try {
+          setConsoleLogs((prev) => {
+            const entry = {
+              level: lvl,
+              at: new Date().toISOString(),
+              message: args.map(formatArg).join(" "),
+            };
+            const next = [...prev, entry];
+            return next.slice(-200); // keep last 200 entries
+          });
+        } catch {
+          // avoid breaking logging
+        }
+        original[lvl]?.(...args);
+      };
+    });
+
+    return () => {
+      levels.forEach((lvl) => {
+        if (original[lvl]) console[lvl] = original[lvl];
+      });
+    };
+  }, []);
 
   // Poll agent log
   useEffect(() => {
@@ -178,7 +218,8 @@ export default function AutoMatchPrototype() {
       if (!res.ok) throw new Error('failed');
       const data = await res.json();
       const dump = data.dump || data;
-      exportJson(dump, `admin-dump-${sessionId}.json`);
+      const dumpWithConsole = { ...dump, clientConsole: consoleLogs };
+      exportJson(dumpWithConsole, `admin-dump-${sessionId}.json`);
     } catch (err) {
       console.error('Failed to export admin dump', err);
     }
@@ -238,7 +279,6 @@ export default function AutoMatchPrototype() {
         setOffersUpdatedAt(new Date().toISOString());
       }
       setVisuals(data.content?.visuals || []);
-      setDefinition(data.content?.definition || '');
 
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -333,11 +373,6 @@ export default function AutoMatchPrototype() {
           {offersLoading && <span>Lädt Angebote…</span>}
           {offersUpdatedAt && !offersLoading && <span>Stand: {new Date(offersUpdatedAt).toLocaleTimeString()}</span>}
         </div>
-        {definition && (
-          <div className="bg-white border border-gray-200 rounded-lg p-3 text-sm text-gray-700 mb-4">
-            {definition}
-          </div>
-        )}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <AnimatePresence>
             {offers.map((offer, idx) => <OfferCard key={idx} offer={offer} />)}
