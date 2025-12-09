@@ -1,5 +1,7 @@
 name: Deploy to VPS
-run-name: "Deploy – ${{ github.event.head_commit.message.split('\n')[0] }}"
+run-name: >
+  Deploy – ${{ github.event.head_commit.message }}
+
 
 on:
   push:
