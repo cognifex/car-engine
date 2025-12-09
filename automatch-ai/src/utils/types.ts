@@ -146,7 +146,7 @@ export const contentSchema = z.object({
 });
 export type ContentPayload = z.infer<typeof contentSchema>;
 
-export interface ConversationState {
+export interface ConversationState extends Record<string, unknown> {
   userMessage: string;
   history?: ConversationMessage[];
   profiling?: ProfilingOutput;
