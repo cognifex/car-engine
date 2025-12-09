@@ -393,12 +393,6 @@ export default function AutoMatchPrototype() {
     const userMessage = inputText.trim();
     if (!userMessage || isTyping) return;
 
-    const hasCriticalUiIssue = uiState.uiBroken || uiState.inputNotReachable || uiState.keyboardOverlayBlocking;
-    if (hasCriticalUiIssue) {
-      botSay('UI-Problem erkannt. Bitte UI wiederherstellen (Scroll, Reload, Tastatur schließen).');
-      return;
-    }
-
     const userId = Date.now();
     const botId = userId + 1;
 
@@ -517,11 +511,13 @@ export default function AutoMatchPrototype() {
     );
   };
 
-  const hasCriticalUiIssue = uiState.uiBroken || uiState.inputNotReachable;
-  const isDegradedUi = uiMode === UI_MODES.DEGRADED_VISUALS || uiHealth.degraded_mode;
+  const uiIssueDetected = uiState.uiBroken || uiState.inputNotReachable || uiState.keyboardOverlayBlocking;
+  // Agent darf UI nicht blockieren: keine Hard-Locks, nur Banner.
+  const hasCriticalUiIssue = false;
+  const isDegradedUi = uiMode === UI_MODES.DEGRADED_VISUALS || uiHealth.degraded_mode || uiIssueDetected;
   const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
   const renderTextOnly = uiRecovery.renderTextOnly || Boolean(uiHealth.render_text_only);
-  const showUiBanner = uiRecovery.showBanner || Boolean(uiHealth.show_banner) || isDegradedUi || hasCriticalUiIssue;
+  const showUiBanner = uiRecovery.showBanner || Boolean(uiHealth.show_banner) || isDegradedUi || uiIssueDetected;
 
   const handleUiRecovery = (action) => {
     if (action === 'reload') {
@@ -562,7 +558,7 @@ export default function AutoMatchPrototype() {
         </div>
       </header>
 
-      {hasCriticalUiIssue && (
+      {uiIssueDetected && (
         <div className="px-4 md:px-6 mt-3">
           <div className="max-w-6xl mx-auto bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-sm text-amber-900 flex flex-col gap-3">
             <div className="flex items-start gap-3">
@@ -623,7 +619,7 @@ export default function AutoMatchPrototype() {
           </div>
           <div className="border-t bg-white px-4 py-3">
             {/* Input field for user messages */}
-            <div className={`flex items-center gap-2 rounded-full border ${hasCriticalUiIssue ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-gray-50'} px-2 py-1 focus-within:ring-2 focus-within:ring-blue-500`}>
+            <div className={`flex items-center gap-2 rounded-full border ${uiIssueDetected ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-gray-50'} px-2 py-1 focus-within:ring-2 focus-within:ring-blue-500`}>
               <input
                 ref={inputRef}
                 type="text"
@@ -632,15 +628,15 @@ export default function AutoMatchPrototype() {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={handleKeyPress}
-                data-guard-disabled={hasCriticalUiIssue ? 'true' : 'false'}
-                disabled={hasCriticalUiIssue}
-                aria-disabled={hasCriticalUiIssue}
+                data-guard-disabled="false"
+                disabled={false}
+                aria-disabled={false}
               />
               <button
                 onClick={handleSendMessage}
-                className={`h-10 w-10 flex items-center justify-center ${hasCriticalUiIssue ? 'bg-amber-400' : 'bg-blue-600'} text-white rounded-full active:scale-[0.98] transition`}
+                className={`h-10 w-10 flex items-center justify-center ${uiIssueDetected ? 'bg-amber-400' : 'bg-blue-600'} text-white rounded-full active:scale-[0.98] transition`}
                 aria-label="Nachricht senden"
-                disabled={hasCriticalUiIssue}
+                disabled={false}
               >
                 <Send size={18} />
               </button>
@@ -672,38 +668,32 @@ export default function AutoMatchPrototype() {
               </div>
             )}
 
-            {hasCriticalUiIssue ? (
-              <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3 mt-2">
-                UI-Problem erkannt – Angebote, Bilder und Logs pausiert, bis das UI wieder nutzbar ist.
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <AnimatePresence>
+                  {offers.map((offer, idx) => (
+                    <OfferCard key={idx} offer={offer} onImageError={handleImageError} renderTextOnly={renderTextOnly} />
+                  ))}
+                </AnimatePresence>
               </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <AnimatePresence>
-                    {offers.map((offer, idx) => (
-                      <OfferCard key={idx} offer={offer} onImageError={handleImageError} renderTextOnly={renderTextOnly} />
-                    ))}
-                  </AnimatePresence>
+
+              {offers.length === 0 && (
+                <div className="text-xs text-gray-500 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-3 mt-2">
+                  Noch keine Angebote – teile deinen Wunsch im Chat, wir füllen die Liste.
                 </div>
+              )}
 
-                {offers.length === 0 && (
-                  <div className="text-xs text-gray-500 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-3 mt-2">
-                    Noch keine Angebote – teile deinen Wunsch im Chat, wir füllen die Liste.
+              {visuals.length > 0 && !renderTextOnly && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-semibold text-gray-800 mb-2">Beispielbilder</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {visuals.slice(0, 8).map((url, i) => (
+                      <img key={i} src={url} alt={`visual-${i}`} className="w-full h-24 object-cover rounded-lg border" loading="lazy" />
+                    ))}
                   </div>
-                )}
-
-                {visuals.length > 0 && !renderTextOnly && (
-                  <div className="mt-4">
-                    <h3 className="text-sm font-semibold text-gray-800 mb-2">Beispielbilder</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                      {visuals.slice(0, 8).map((url, i) => (
-                        <img key={i} src={url} alt={`visual-${i}`} className="w-full h-24 object-cover rounded-lg border" loading="lazy" />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
+                </div>
+              )}
+            </>
           </div>
 
           <div className={`${activeSection !== 'logs' ? 'hidden md:block' : 'block'} rounded-2xl bg-white border border-gray-100 shadow-sm p-4`}>
@@ -718,38 +708,34 @@ export default function AutoMatchPrototype() {
                 </button>
               </div>
             </div>
-            {hasCriticalUiIssue ? (
-              <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">Logs pausiert, bis die UI wieder nutzbar ist.</div>
-            ) : (
-              <div className="text-xs text-gray-600 max-h-52 overflow-y-auto overflow-x-hidden space-y-2">
-                {agentLog.length === 0 && <div className="text-gray-400">Noch keine Log-Einträge.</div>}
-                {agentLog.map((entry, i) => (
-                  <div key={i} className="border border-gray-100 rounded-lg p-2 w-full">
-                    <div className="text-[11px] text-gray-500 flex gap-2">
-                      <span>{new Date(entry.at).toLocaleTimeString()}</span>
-                      <span className="text-gray-400">Turn: {entry.turnId || "n/a"}</span>
-                    </div>
-                    <div className="font-medium text-gray-800 mt-1 break-words">User: {entry.user}</div>
-                    <div className="text-gray-700 break-words">Bot: {entry.reply}</div>
-                    {entry.debugLogs && entry.debugLogs.length > 0 && (
-                      <div className="mt-1 space-y-1">
-                        {entry.debugLogs.map((log, idx) => (
-                          <div key={idx} className="bg-gray-50 border border-gray-100 rounded p-1">
-                            <div className="text-[11px] font-semibold text-gray-700">{log.agent}</div>
-                            <div className="text-[11px] text-gray-600 break-all max-w-full">
-                              in: {JSON.stringify(log.input || {})}
-                            </div>
-                            <div className="text-[11px] text-gray-600 break-all max-w-full">
-                              out: {JSON.stringify(log.output || {})}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+            <div className="text-xs text-gray-600 max-h-52 overflow-y-auto overflow-x-hidden space-y-2">
+              {agentLog.length === 0 && <div className="text-gray-400">Noch keine Log-Einträge.</div>}
+              {agentLog.map((entry, i) => (
+                <div key={i} className="border border-gray-100 rounded-lg p-2 w-full">
+                  <div className="text-[11px] text-gray-500 flex gap-2">
+                    <span>{new Date(entry.at).toLocaleTimeString()}</span>
+                    <span className="text-gray-400">Turn: {entry.turnId || "n/a"}</span>
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="font-medium text-gray-800 mt-1 break-words">User: {entry.user}</div>
+                  <div className="text-gray-700 break-words">Bot: {entry.reply}</div>
+                  {entry.debugLogs && entry.debugLogs.length > 0 && (
+                    <div className="mt-1 space-y-1">
+                      {entry.debugLogs.map((log, idx) => (
+                        <div key={idx} className="bg-gray-50 border border-gray-100 rounded p-1">
+                          <div className="text-[11px] font-semibold text-gray-700">{log.agent}</div>
+                          <div className="text-[11px] text-gray-600 break-all max-w-full">
+                            in: {JSON.stringify(log.input || {})}
+                          </div>
+                          <div className="text-[11px] text-gray-600 break-all max-w-full">
+                            out: {JSON.stringify(log.output || {})}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </section>
       </main>
