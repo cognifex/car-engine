@@ -12,6 +12,8 @@ export const INTENT_TYPES = {
   NEEDS_CLARIFICATION: "needs_clarification",
 } as const;
 
+export type IntentLiteral = (typeof INTENT_TYPES)[keyof typeof INTENT_TYPES];
+
 export type PreferenceConstraintStateData = {
   preferredCategories: string[];
   excludedCategories: string[];
@@ -171,16 +173,18 @@ export class PreferenceConstraintState {
   }
 }
 
-export const needsEntities = (intentType?: string) =>
-  [
-    INTENT_TYPES.INFORMATION,
-    INTENT_TYPES.COMPLAINT,
-    INTENT_TYPES.PREFERENCE_CHANGE,
-    INTENT_TYPES.CONSTRAINT_UPDATE,
-    INTENT_TYPES.FEEDBACK_NEGATIVE,
-    INTENT_TYPES.FEEDBACK_POSITIVE,
-    INTENT_TYPES.FRUSTRATION,
-  ].includes(intentType as string);
+const ENTITY_INTENTS = [
+  INTENT_TYPES.INFORMATION,
+  INTENT_TYPES.COMPLAINT,
+  INTENT_TYPES.PREFERENCE_CHANGE,
+  INTENT_TYPES.CONSTRAINT_UPDATE,
+  INTENT_TYPES.FEEDBACK_NEGATIVE,
+  INTENT_TYPES.FEEDBACK_POSITIVE,
+  INTENT_TYPES.FRUSTRATION,
+] as const;
+
+export const needsEntities = (intentType?: IntentLiteral) =>
+  intentType ? (ENTITY_INTENTS as ReadonlyArray<string>).includes(intentType) : false;
 
 export const applyPreferencesToItems = (items: any[] = [], preferenceState: PreferenceConstraintStateData = {
   preferredCategories: [],
