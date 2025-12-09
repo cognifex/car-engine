@@ -89,3 +89,4 @@ jobs:
           echo "Resetting deploy fail counter on VPS..."
           ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST \
             "echo 0 > /opt/car-engine/autofix-fail-counter"
+#
