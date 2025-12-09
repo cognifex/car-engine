@@ -11,7 +11,7 @@ export const runPipeline = async (
   const sessionId = options.sessionId || `sess-${Date.now()}`;
   const collector = new SessionTraceCollector({
     sessionId,
-    modelId: "graph-jeep",
+    modelId: "graph-catalog",
     redacted: options.redacted,
     store: new SessionDumpStore(),
   });

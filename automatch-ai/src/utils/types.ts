@@ -207,25 +207,6 @@ export interface UIHealth {
   signals?: Record<string, unknown>;
 }
 
-export interface JeepModel {
-  id: string;
-  model: string;
-  year: string;
-  power: string;
-  drivetrain: string;
-  fuel: string;
-  summary: string;
-  image?: string;
-  imageOptional?: boolean;
-  fallbackReason?: string;
-}
-
-export interface JeepValidationResult {
-  models: JeepModel[];
-  issues: string[];
-  renderTextOnly: boolean;
-}
-
 export interface UIRecoveryInstruction {
   renderTextOnly: boolean;
   showBanner: boolean;
@@ -253,8 +234,6 @@ export interface ConversationState extends Record<string, unknown> {
   sessionId?: string;
   clientEvents?: ClientEvent[];
   uiState?: UIState;
-  jeepResults?: JeepModel[];
-  validatedJeepResults?: JeepValidationResult;
   uiRecovery?: UIRecoveryInstruction;
   content_state?: ContentState;
   ui_health?: UIHealth;
