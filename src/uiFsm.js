@@ -5,7 +5,7 @@ export const UI_MODES = {
 };
 
 const isCriticalLocal = (localFlags = {}) =>
-  localFlags.uiBroken || localFlags.layoutShiftDetected || localFlags.inputNotReachable || localFlags.viewportObstructed || localFlags.keyboardOverlayBlocking;
+  localFlags.inputNotReachable || localFlags.keyboardOverlayBlocking || (localFlags.uiBroken && localFlags.issues?.some((i) => !i.toLowerCase().includes('nav')));
 
 const isDegradedLocal = (localFlags = {}) => localFlags.issues?.length > 0;
 

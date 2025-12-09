@@ -33,12 +33,15 @@ export function evaluateUiState(current, previous = {}) {
   const navVisible = typeof navVisibleFromSnapshot === 'boolean'
     ? navVisibleFromSnapshot
     : Boolean(elements.nav && elements.nav.width > 0 && elements.nav.height > 0);
-  const navExpected = (viewportWidth || 0) < 768; // nav only rendered on small screens
+  const navExpected = typeof viewportWidth === 'number' ? viewportWidth < 768 : false; // nav only rendered on small screens
 
   const requiredElements = navExpected ? ['main', 'input', 'nav', 'chat'] : ['main', 'input', 'chat'];
   const missing = requiredElements.filter((key) => !elements[key]);
-  if (missing.length > 0) {
-    base.uiBroken = true;
+  if (missing.length > 0) { 
+    const criticalMissing = missing.filter((key) => key !== 'nav'); // nav missing alone should not brick desktop
+    if (criticalMissing.length > 0) {
+      base.uiBroken = true;
+    }
     issues.push(`Fehlende Kern-Elemente: ${missing.join(', ')}`);
   }
 
@@ -46,7 +49,10 @@ export function evaluateUiState(current, previous = {}) {
     .filter(([key, val]) => val === false && requiredElements.includes(key))
     .map(([key]) => key);
   if (invisible.length > 0) {
-    base.uiBroken = true;
+    const criticalInvisible = invisible.filter((key) => key !== 'nav');
+    if (criticalInvisible.length > 0) {
+      base.uiBroken = true;
+    }
     issues.push(`Kern-Elemente nicht sichtbar/renderbar: ${invisible.join(', ')}`);
   }
 

@@ -314,7 +314,7 @@ export default function AutoMatchPrototype() {
       setUiMode(next.next);
     }
 
-    if (state.uiBroken || state.layoutShiftDetected || state.inputNotReachable || state.viewportObstructed || state.keyboardOverlayBlocking) {
+    if (state.uiBroken || state.inputNotReachable || state.keyboardOverlayBlocking) {
       setUiRecovery((prev) => ({
         ...prev,
         renderTextOnly: true,
@@ -517,7 +517,7 @@ export default function AutoMatchPrototype() {
     );
   };
 
-  const hasCriticalUiIssue = uiMode === UI_MODES.ERROR || uiState.uiBroken || uiState.layoutShiftDetected || uiState.inputNotReachable || uiState.viewportObstructed || uiState.keyboardOverlayBlocking;
+  const hasCriticalUiIssue = uiState.inputNotReachable || uiState.keyboardOverlayBlocking;
   const isDegradedUi = uiMode === UI_MODES.DEGRADED_VISUALS;
   const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
   const renderTextOnly = uiRecovery.renderTextOnly || isDegradedUi;
