@@ -30,9 +30,10 @@ export function evaluateUiState(current, previous = {}) {
     navVisible: navVisibleFromSnapshot,
   } = current;
   const issues = [];
+  const navHeight = elements.nav?.height ?? (elements.nav?.bottom && elements.nav?.top ? elements.nav.bottom - elements.nav.top : 0);
   const navVisible = typeof navVisibleFromSnapshot === 'boolean'
     ? navVisibleFromSnapshot
-    : Boolean(elements.nav && elements.nav.width > 0 && elements.nav.height > 0);
+    : Boolean(elements.nav && navHeight > 0);
   const navExpected = typeof viewportWidth === 'number' ? viewportWidth < 768 : false; // nav only rendered on small screens
 
   const requiredElements = navExpected ? ['main', 'input', 'nav', 'chat'] : ['main', 'input', 'chat'];
@@ -71,7 +72,7 @@ export function evaluateUiState(current, previous = {}) {
     }
   }
 
-  if (navExpected && navVisible && elements.nav && visualViewportHeight) {
+  if (navExpected && elements.nav && visualViewportHeight) {
     const safeBottom = Math.max(0, safeAreaInsets.bottom || 0);
     if (elements.nav.bottom > visualViewportHeight - safeBottom - 4) {
       base.viewportObstructed = true;

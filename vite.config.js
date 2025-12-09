@@ -13,5 +13,9 @@ export default defineConfig({
         changeOrigin: true,
       },
     }
+  },
+  test: {
+    include: ['src/**/*.{test,spec}.?(c|m)js'],
+    exclude: ['node_modules/**', 'automatch-ai/**'],
   }
 })
