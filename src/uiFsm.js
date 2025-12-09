@@ -5,7 +5,6 @@ export const UI_MODES = {
 };
 
 const isCriticalLocal = (localFlags = {}) =>
-  localFlags.inputNotReachable ||
   localFlags.uiBroken ||
   (localFlags.uiBroken && localFlags.issues?.some((i) => !i.toLowerCase().includes('nav')));
 

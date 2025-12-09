@@ -167,24 +167,32 @@ const loadCatalogEntities = (preferenceState?: PreferenceConstraintStateData, ma
 };
 
 const buildOffersFromEntities = (entities: Record<string, unknown>[]) => {
-  return entities.map((m) => ({
-    title: String(m.title || "Ergebnis"),
-    model: String(m.title || "Ergebnis"),
-    price: 0,
-    dealer: "Katalog",
-    link: String((m as any).link || ""),
-    image_url: String(m.image || ""),
-    location: "",
-    mileage: "",
-    badge: Array.isArray(m.attributes) ? (m.attributes as string[]).filter(Boolean).join(" • ") : "",
-    created_at: new Date().toISOString(),
-    vin: String(m.id || ""),
-    isOffroadRelevant: Boolean((m as any).category && normalize((m as any).category).includes("suv")),
-    isExactMatchToSuggestion: true,
-    relevanceScore: 1,
-    source: "spec-catalog",
-    fallbackReason: "",
-  }));
+  const seen = new Set<string>();
+  return entities
+    .map((m) => ({
+      title: String(m.title || "Ergebnis"),
+      model: String(m.title || "Ergebnis"),
+      price: 0,
+      dealer: "Katalog",
+      link: String((m as any).link || ""),
+      image_url: "", // vermeiden externer Broken-Images, wir bleiben text-first
+      location: "",
+      mileage: "",
+      badge: Array.isArray(m.attributes) ? (m.attributes as string[]).filter(Boolean).join(" • ") : "",
+      created_at: new Date().toISOString(),
+      vin: String(m.id || ""),
+      isOffroadRelevant: Boolean((m as any).category && normalize((m as any).category).includes("suv")),
+      isExactMatchToSuggestion: true,
+      relevanceScore: 1,
+      source: "spec-catalog",
+      fallbackReason: "",
+    }))
+    .filter((offer) => {
+      const key = `${offer.model.toLowerCase()}|${offer.badge.toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 };
 
 const buildRecovery = (uiHealth: UIHealth): UIRecoveryInstruction => {
@@ -329,9 +337,12 @@ const composeReply = ({
   }
 
   const reply = applyPersonaTone(base, friendlyPersona, { frustration, planHint });
-  const followUp = uiHealth.render_text_only
-    ? "Visuelle Elemente reduziere ich, bis die UI stabil ist."
-    : evaluation?.followUp || "";
+  const followUp =
+    content_state.has_results && !content_state.clarification_required
+      ? "Willst du Budget oder Marke einschränken?"
+      : uiHealth.render_text_only
+        ? "Visuelle Elemente reduziere ich, bis die UI stabil ist."
+        : evaluation?.followUp || "";
 
   if (lastReply && reply === lastReply) {
     return {
@@ -470,6 +481,9 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       fallback_used: routingDecision.content_state.fallback_used || repeatWithChangedConstraints || offers.length === 0,
       no_relevant_results: routingDecision.content_state.no_relevant_results || offers.length === 0,
     };
+    if (offers.length > 0) {
+      content_state.clarification_required = false;
+    }
 
     offersMeta = {
       ...offersMeta,

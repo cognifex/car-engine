@@ -148,5 +148,44 @@
     "intent": "knowledge_signal",
     "gatingReason": "needs_structured_requirement",
     "timestamp": "2025-12-09T21:46:10.548Z"
+  },
+  {
+    "reason": "repeat_with_changed_constraints",
+    "intent": "feedback_negative",
+    "timestamp": "2025-12-09T22:23:24.452Z"
+  },
+  {
+    "reason": "frustration",
+    "intent": "feedback_negative",
+    "gatingReason": "user_frustrated",
+    "timestamp": "2025-12-09T22:23:24.453Z"
+  },
+  {
+    "reason": "fallback_used",
+    "intent": "frustration",
+    "timestamp": "2025-12-09T22:23:24.481Z"
+  },
+  {
+    "reason": "frustration",
+    "intent": "frustration",
+    "gatingReason": "user_frustrated",
+    "timestamp": "2025-12-09T22:23:24.482Z"
+  },
+  {
+    "reason": "fallback_used",
+    "intent": "knowledge_signal",
+    "gatingReason": "needs_structured_requirement",
+    "timestamp": "2025-12-09T22:23:24.503Z"
+  },
+  {
+    "reason": "repeat_with_changed_constraints",
+    "intent": "feedback_negative",
+    "timestamp": "2025-12-09T22:23:25.920Z"
+  },
+  {
+    "reason": "frustration",
+    "intent": "feedback_negative",
+    "gatingReason": "user_frustrated",
+    "timestamp": "2025-12-09T22:23:25.920Z"
   }
 ]

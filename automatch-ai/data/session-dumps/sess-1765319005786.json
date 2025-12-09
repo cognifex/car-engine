@@ -1,0 +1,959 @@
+{
+  "metadata": {
+    "sessionId": "sess-1765319005786",
+    "startedAt": "2025-12-09T22:23:25.786Z",
+    "completedAt": "2025-12-09T22:23:25.865Z",
+    "modelId": "graph-catalog",
+    "redacted": false
+  },
+  "conversation": [
+    {
+      "id": "turn-1-user",
+      "role": "user",
+      "text": "zeige jeep modelle",
+      "timestamp": "2025-12-09T22:23:25.793Z"
+    },
+    {
+      "id": "turn-1-assistant",
+      "role": "assistant",
+      "text": "Ich habe 10 Optionen vorbereitet. Plan: Ergebnisse kurz anreißen, dann auf Wunsch vertiefen. Sag mir gern, wenn ich etwas anders priorisieren soll.",
+      "timestamp": "2025-12-09T22:23:25.865Z"
+    },
+    {
+      "id": "turn-1-followup",
+      "role": "assistant",
+      "text": "Willst du Budget oder Marke einschränken?",
+      "timestamp": "2025-12-09T22:23:25.865Z"
+    }
+  ],
+  "turns": [
+    {
+      "turnId": "turn-1",
+      "startedAt": "2025-12-09T22:23:25.793Z",
+      "endedAt": "2025-12-09T22:23:25.865Z",
+      "userMessage": "zeige jeep modelle",
+      "reply": "Ich habe 10 Optionen vorbereitet. Plan: Ergebnisse kurz anreißen, dann auf Wunsch vertiefen. Sag mir gern, wenn ich etwas anders priorisieren soll.",
+      "followUp": "Willst du Budget oder Marke einschränken?",
+      "nodes": [
+        {
+          "name": "memoryBootstrap",
+          "input": {
+            "history": []
+          },
+          "output": {
+            "shortTerm": {
+              "messages": [],
+              "maxItems": 12,
+              "lastUpdated": "2025-12-09T22:23:25.786Z"
+            },
+            "working": {
+              "product": {
+                "preferredCategories": [],
+                "excludedCategories": [],
+                "preferredAttributes": [],
+                "excludedAttributes": [],
+                "useCases": []
+              },
+              "conversation": {},
+              "style": {},
+              "filters": {}
+            },
+            "longTerm": {
+              "reflections": [],
+              "personaAdjustments": [],
+              "frustrationCount": 0,
+              "lastPlan": "",
+              "lastUiHealthNote": ""
+            }
+          },
+          "startedAt": "2025-12-09T22:23:25.816Z",
+          "endedAt": "2025-12-09T22:23:25.816Z",
+          "durationMs": 0
+        },
+        {
+          "name": "clientEvent",
+          "input": {
+            "events": []
+          },
+          "output": {
+            "imageFailures": 0,
+            "failedModels": [],
+            "networkChanged": false,
+            "resultsNotVisible": false
+          },
+          "startedAt": "2025-12-09T22:23:25.820Z",
+          "endedAt": "2025-12-09T22:23:25.820Z",
+          "durationMs": 0
+        },
+        {
+          "name": "intentParser",
+          "input": {
+            "message": "zeige jeep modelle",
+            "uiState": {
+              "imageFailures": 0,
+              "failedModels": [],
+              "networkChanged": false,
+              "resultsNotVisible": false
+            }
+          },
+          "output": {
+            "intent": "preference_change",
+            "frustration": false,
+            "preferenceSignals": {
+              "product": {
+                "preferredCategories": [
+                  "jeep modelle"
+                ],
+                "excludedCategories": [],
+                "preferredAttributes": [],
+                "excludedAttributes": [],
+                "useCases": []
+              },
+              "conversation": {},
+              "style": {}
+            },
+            "confidence": 0.78
+          },
+          "startedAt": "2025-12-09T22:23:25.824Z",
+          "endedAt": "2025-12-09T22:23:25.824Z",
+          "durationMs": 0
+        },
+        {
+          "name": "planner",
+          "input": {
+            "intent": {
+              "intent": "preference_change",
+              "frustration": false,
+              "preferenceSignals": {
+                "product": {
+                  "preferredCategories": [
+                    "jeep modelle"
+                  ],
+                  "excludedCategories": [],
+                  "preferredAttributes": [],
+                  "excludedAttributes": [],
+                  "useCases": []
+                },
+                "conversation": {},
+                "style": {}
+              },
+              "confidence": 0.78
+            },
+            "preferenceState": {
+              "product": {
+                "preferredCategories": [
+                  "jeep modelle"
+                ],
+                "excludedCategories": [],
+                "preferredAttributes": [],
+                "excludedAttributes": [],
+                "useCases": []
+              },
+              "conversation": {},
+              "style": {
+                "vibe": []
+              },
+              "filters": {}
+            }
+          },
+          "output": {
+            "plan": [
+              {
+                "id": "intent-parse",
+                "description": "Verstehe Absicht und Stimmung",
+                "agent": "intent",
+                "required": true
+              },
+              {
+                "id": "planner",
+                "description": "Bestimme die nächsten Schritte und UX-Modus",
+                "agent": "planner",
+                "required": true
+              },
+              {
+                "id": "tooling",
+                "description": "Generiere/Filtern Angebote und Visuals",
+                "agent": "tool",
+                "required": true
+              },
+              {
+                "id": "evaluator",
+                "description": "Qualität/UX/Frust prüfen",
+                "agent": "evaluator",
+                "required": true
+              },
+              {
+                "id": "front",
+                "description": "Antwort im freundlichen Ton liefern",
+                "agent": "front",
+                "required": true
+              }
+            ],
+            "allowOffers": true,
+            "needsClarification": false,
+            "structured": true,
+            "planHint": "Plan: Ergebnisse kurz anreißen, dann auf Wunsch vertiefen."
+          },
+          "startedAt": "2025-12-09T22:23:25.828Z",
+          "endedAt": "2025-12-09T22:23:25.828Z",
+          "durationMs": 0
+        },
+        {
+          "name": "execution",
+          "input": {
+            "intent": {
+              "intent": "preference_change",
+              "frustration": false,
+              "preferenceSignals": {
+                "product": {
+                  "preferredCategories": [
+                    "jeep modelle"
+                  ],
+                  "excludedCategories": [],
+                  "preferredAttributes": [],
+                  "excludedAttributes": [],
+                  "useCases": []
+                },
+                "conversation": {},
+                "style": {}
+              },
+              "confidence": 0.78
+            },
+            "preferenceState": {
+              "product": {
+                "preferredCategories": [
+                  "jeep modelle"
+                ],
+                "excludedCategories": [],
+                "preferredAttributes": [],
+                "excludedAttributes": [],
+                "useCases": []
+              },
+              "conversation": {},
+              "style": {
+                "vibe": []
+              },
+              "filters": {}
+            }
+          },
+          "output": {
+            "offers": 10,
+            "content_state": {
+              "has_results": true,
+              "num_results": 10,
+              "clarification_required": false,
+              "no_relevant_results": false,
+              "fallback_used": false,
+              "strict_matching": true,
+              "notes": [],
+              "repeat_with_changed_constraints": false
+            }
+          },
+          "startedAt": "2025-12-09T22:23:25.848Z",
+          "endedAt": "2025-12-09T22:23:25.848Z",
+          "durationMs": 0
+        },
+        {
+          "name": "uiHealth",
+          "input": {
+            "uiState": {
+              "imageFailures": 0,
+              "failedModels": [],
+              "networkChanged": false,
+              "resultsNotVisible": false
+            },
+            "events": []
+          },
+          "output": {
+            "degraded_mode": false,
+            "render_text_only": false,
+            "show_banner": false,
+            "severity": "info",
+            "signals": {
+              "imageFailures": 0,
+              "networkChanged": false,
+              "resultsNotVisible": false,
+              "agentFailures": 0
+            }
+          },
+          "startedAt": "2025-12-09T22:23:25.850Z",
+          "endedAt": "2025-12-09T22:23:25.850Z",
+          "durationMs": 0
+        },
+        {
+          "name": "evaluation",
+          "input": {
+            "content_state": {
+              "has_results": true,
+              "num_results": 10,
+              "clarification_required": false,
+              "no_relevant_results": false,
+              "fallback_used": false,
+              "strict_matching": true,
+              "notes": [],
+              "repeat_with_changed_constraints": false
+            },
+            "uiHealth": {
+              "degraded_mode": false,
+              "render_text_only": false,
+              "show_banner": false,
+              "severity": "info",
+              "signals": {
+                "imageFailures": 0,
+                "networkChanged": false,
+                "resultsNotVisible": false,
+                "agentFailures": 0
+              }
+            },
+            "frustration": false
+          },
+          "output": {
+            "severity": "info",
+            "notes": [],
+            "blockers": []
+          },
+          "startedAt": "2025-12-09T22:23:25.853Z",
+          "endedAt": "2025-12-09T22:23:25.853Z",
+          "durationMs": 0
+        },
+        {
+          "name": "response",
+          "input": {
+            "content_state": {
+              "has_results": true,
+              "num_results": 10,
+              "clarification_required": false,
+              "no_relevant_results": false,
+              "fallback_used": false,
+              "strict_matching": true,
+              "notes": [],
+              "repeat_with_changed_constraints": false
+            },
+            "uiHealth": {
+              "degraded_mode": false,
+              "render_text_only": false,
+              "show_banner": false,
+              "severity": "info",
+              "signals": {
+                "imageFailures": 0,
+                "networkChanged": false,
+                "resultsNotVisible": false,
+                "agentFailures": 0
+              }
+            }
+          },
+          "output": {
+            "reply": "Ich habe 10 Optionen vorbereitet. Plan: Ergebnisse kurz anreißen, dann auf Wunsch vertiefen. Sag mir gern, wenn ich etwas anders priorisieren soll.",
+            "followUp": "Willst du Budget oder Marke einschränken?"
+          },
+          "startedAt": "2025-12-09T22:23:25.855Z",
+          "endedAt": "2025-12-09T22:23:25.855Z",
+          "durationMs": 0
+        }
+      ],
+      "intent": {
+        "intent": "preference_change",
+        "frustration": false,
+        "preferenceSignals": {
+          "product": {
+            "preferredCategories": [
+              "jeep modelle"
+            ],
+            "excludedCategories": [],
+            "preferredAttributes": [],
+            "excludedAttributes": [],
+            "useCases": []
+          },
+          "conversation": {},
+          "style": {}
+        },
+        "confidence": 0.78
+      },
+      "routing": {
+        "includeKnowledge": true,
+        "includeVisuals": true,
+        "includeMatching": true,
+        "includeOffers": true,
+        "strictOffers": true,
+        "retryMatching": false
+      },
+      "offers": [
+        {
+          "title": "Honda Civic V 4d 16 ESi",
+          "model": "Honda Civic V 4d 16 ESi",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7877/Honda-Civic-V-4d-16-ESi.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.847Z",
+          "vin": "honda-civic-v-4d-16-esi-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda Civic V 4d 16 VTi",
+          "model": "Honda Civic V 4d 16 VTi",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7876/Honda-Civic-V-4d-16-VTi.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.847Z",
+          "vin": "honda-civic-v-4d-16-vti-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda Civic VI 5d 14i",
+          "model": "Honda Civic VI 5d 14i",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7889/Honda-Civic-VI-5d-14i.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "honda-civic-vi-5d-14i-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda Civic VI 5d 15i",
+          "model": "Honda Civic VI 5d 15i",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7883/Honda-Civic-VI-5d-15i.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "honda-civic-vi-5d-15i-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda CR V III 20 i VTEC Luxury",
+          "model": "Honda CR V III 20 i VTEC Luxury",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/13412/Honda-CR-V-III-20-i-VTEC-Luxury.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • AWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "honda-cr-v-iii-20-i-vtec-luxury-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda CR V III 20 i VTEC Luxury Aut",
+          "model": "Honda CR V III 20 i VTEC Luxury Aut",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/9640/Honda-CR-V-III-20-i-VTEC-Luxury-Aut.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • AWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "honda-cr-v-iii-20-i-vtec-luxury-aut-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda CR V III 20 i VTEC S",
+          "model": "Honda CR V III 20 i VTEC S",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/10463/Honda-CR-V-III-20-i-VTEC-S.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • AWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "honda-cr-v-iii-20-i-vtec-s-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda HR V 3 Doors 16i 2WD",
+          "model": "Honda HR V 3 Doors 16i 2WD",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7944/Honda-HR-V-3-Doors-16i-2WD.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "honda-hr-v-3-doors-16i-2wd-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Mazda 5 Luxury 20 146HP Aut",
+          "model": "Mazda 5 Luxury 20 146HP Aut",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Mazda/11239/Mazda-5-Luxury-20-146HP-Aut.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "mazda-5-luxury-20-146hp-aut-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Mazda 5 Luxury 20 DISI iStop 150HP",
+          "model": "Mazda 5 Luxury 20 DISI iStop 150HP",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Mazda/11101/Mazda-5-Luxury-20-DISI-iStop-150HP.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "mazda-5-luxury-20-disi-istop-150hp-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        }
+      ],
+      "offersHistory": [],
+      "content": {
+        "offers": [
+          {
+            "title": "Honda Civic V 4d 16 ESi",
+            "model": "Honda Civic V 4d 16 ESi",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7877/Honda-Civic-V-4d-16-ESi.html",
+            "image_url": "",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-09T22:23:25.847Z",
+            "vin": "honda-civic-v-4d-16-esi-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": ""
+          },
+          {
+            "title": "Honda Civic V 4d 16 VTi",
+            "model": "Honda Civic V 4d 16 VTi",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7876/Honda-Civic-V-4d-16-VTi.html",
+            "image_url": "",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-09T22:23:25.847Z",
+            "vin": "honda-civic-v-4d-16-vti-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": ""
+          },
+          {
+            "title": "Honda Civic VI 5d 14i",
+            "model": "Honda Civic VI 5d 14i",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7889/Honda-Civic-VI-5d-14i.html",
+            "image_url": "",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-09T22:23:25.848Z",
+            "vin": "honda-civic-vi-5d-14i-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": ""
+          },
+          {
+            "title": "Honda Civic VI 5d 15i",
+            "model": "Honda Civic VI 5d 15i",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7883/Honda-Civic-VI-5d-15i.html",
+            "image_url": "",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-09T22:23:25.848Z",
+            "vin": "honda-civic-vi-5d-15i-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": ""
+          },
+          {
+            "title": "Honda CR V III 20 i VTEC Luxury",
+            "model": "Honda CR V III 20 i VTEC Luxury",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/13412/Honda-CR-V-III-20-i-VTEC-Luxury.html",
+            "image_url": "",
+            "location": "",
+            "mileage": "",
+            "badge": "- • AWD • Benzin",
+            "created_at": "2025-12-09T22:23:25.848Z",
+            "vin": "honda-cr-v-iii-20-i-vtec-luxury-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": ""
+          },
+          {
+            "title": "Honda CR V III 20 i VTEC Luxury Aut",
+            "model": "Honda CR V III 20 i VTEC Luxury Aut",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/9640/Honda-CR-V-III-20-i-VTEC-Luxury-Aut.html",
+            "image_url": "",
+            "location": "",
+            "mileage": "",
+            "badge": "- • AWD • Benzin",
+            "created_at": "2025-12-09T22:23:25.848Z",
+            "vin": "honda-cr-v-iii-20-i-vtec-luxury-aut-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": ""
+          },
+          {
+            "title": "Honda CR V III 20 i VTEC S",
+            "model": "Honda CR V III 20 i VTEC S",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/10463/Honda-CR-V-III-20-i-VTEC-S.html",
+            "image_url": "",
+            "location": "",
+            "mileage": "",
+            "badge": "- • AWD • Benzin",
+            "created_at": "2025-12-09T22:23:25.848Z",
+            "vin": "honda-cr-v-iii-20-i-vtec-s-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": ""
+          },
+          {
+            "title": "Honda HR V 3 Doors 16i 2WD",
+            "model": "Honda HR V 3 Doors 16i 2WD",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7944/Honda-HR-V-3-Doors-16i-2WD.html",
+            "image_url": "",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-09T22:23:25.848Z",
+            "vin": "honda-hr-v-3-doors-16i-2wd-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": ""
+          },
+          {
+            "title": "Mazda 5 Luxury 20 146HP Aut",
+            "model": "Mazda 5 Luxury 20 146HP Aut",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Mazda/11239/Mazda-5-Luxury-20-146HP-Aut.html",
+            "image_url": "",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-09T22:23:25.848Z",
+            "vin": "mazda-5-luxury-20-146hp-aut-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": ""
+          },
+          {
+            "title": "Mazda 5 Luxury 20 DISI iStop 150HP",
+            "model": "Mazda 5 Luxury 20 DISI iStop 150HP",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Mazda/11101/Mazda-5-Luxury-20-DISI-iStop-150HP.html",
+            "image_url": "",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-09T22:23:25.848Z",
+            "vin": "mazda-5-luxury-20-disi-istop-150hp-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": ""
+          }
+        ],
+        "visuals": [],
+        "definition": "Generische Übersicht"
+      },
+      "uiPresentedOffers": [
+        {
+          "title": "Honda Civic V 4d 16 ESi",
+          "model": "Honda Civic V 4d 16 ESi",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7877/Honda-Civic-V-4d-16-ESi.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.847Z",
+          "vin": "honda-civic-v-4d-16-esi-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda Civic V 4d 16 VTi",
+          "model": "Honda Civic V 4d 16 VTi",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7876/Honda-Civic-V-4d-16-VTi.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.847Z",
+          "vin": "honda-civic-v-4d-16-vti-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda Civic VI 5d 14i",
+          "model": "Honda Civic VI 5d 14i",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7889/Honda-Civic-VI-5d-14i.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "honda-civic-vi-5d-14i-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda Civic VI 5d 15i",
+          "model": "Honda Civic VI 5d 15i",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7883/Honda-Civic-VI-5d-15i.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "honda-civic-vi-5d-15i-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda CR V III 20 i VTEC Luxury",
+          "model": "Honda CR V III 20 i VTEC Luxury",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/13412/Honda-CR-V-III-20-i-VTEC-Luxury.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • AWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "honda-cr-v-iii-20-i-vtec-luxury-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda CR V III 20 i VTEC Luxury Aut",
+          "model": "Honda CR V III 20 i VTEC Luxury Aut",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/9640/Honda-CR-V-III-20-i-VTEC-Luxury-Aut.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • AWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "honda-cr-v-iii-20-i-vtec-luxury-aut-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda CR V III 20 i VTEC S",
+          "model": "Honda CR V III 20 i VTEC S",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/10463/Honda-CR-V-III-20-i-VTEC-S.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • AWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "honda-cr-v-iii-20-i-vtec-s-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Honda HR V 3 Doors 16i 2WD",
+          "model": "Honda HR V 3 Doors 16i 2WD",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7944/Honda-HR-V-3-Doors-16i-2WD.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "honda-hr-v-3-doors-16i-2wd-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Mazda 5 Luxury 20 146HP Aut",
+          "model": "Mazda 5 Luxury 20 146HP Aut",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Mazda/11239/Mazda-5-Luxury-20-146HP-Aut.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "mazda-5-luxury-20-146hp-aut-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        },
+        {
+          "title": "Mazda 5 Luxury 20 DISI iStop 150HP",
+          "model": "Mazda 5 Luxury 20 DISI iStop 150HP",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Mazda/11101/Mazda-5-Luxury-20-DISI-iStop-150HP.html",
+          "image_url": "",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-09T22:23:25.848Z",
+          "vin": "mazda-5-luxury-20-disi-istop-150hp-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": ""
+        }
+      ],
+      "semanticallyFocusedModels": [
+        "Honda Civic V 4d 16 ESi",
+        "Honda Civic V 4d 16 VTi",
+        "Honda Civic VI 5d 14i",
+        "Honda Civic VI 5d 15i",
+        "Honda CR V III 20 i VTEC Luxury",
+        "Honda CR V III 20 i VTEC Luxury Aut",
+        "Honda CR V III 20 i VTEC S",
+        "Honda HR V 3 Doors 16i 2WD",
+        "Mazda 5 Luxury 20 146HP Aut",
+        "Mazda 5 Luxury 20 DISI iStop 150HP"
+      ],
+      "clientEvents": [],
+      "uiState": {
+        "imageFailures": 0,
+        "failedModels": [],
+        "networkChanged": false,
+        "resultsNotVisible": false
+      },
+      "uiRecovery": {
+        "renderTextOnly": false,
+        "degradedMode": false,
+        "showBanner": false
+      }
+    }
+  ],
+  "errors": [],
+  "clientEvents": []
+}

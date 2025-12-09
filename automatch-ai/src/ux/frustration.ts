@@ -19,10 +19,5 @@ export const detectFrustrationSignals = (signals: FrustrationSignals): { frustra
     reasons.push("intent_flag");
   }
 
-  const uiFailures = (signals.events || []).filter((e) => e.type === "IMAGE_LOAD_FAILED" || e.type === "UI_HEALTH_SIGNAL");
-  if (uiFailures.length >= 2) {
-    reasons.push("ui_failures");
-  }
-
   return { frustrated: reasons.length > 0, reasons };
 };

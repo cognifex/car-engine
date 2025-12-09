@@ -108,6 +108,10 @@ const extractPreferenceSignals = (normalized: string) => {
     useCases.push(useCaseMatch[1]);
   }
 
+  if (normalized.includes("vielfahrer") || normalized.includes("viel fahr") || normalized.includes("viel fahre")) {
+    useCases.push("langstrecke");
+  }
+
   const searchPattern = /\b(?:suche|zeige|zeig|finde)\s+([^.,;]+)/;
   const searchMatch = normalized.match(searchPattern);
   if (searchMatch && searchMatch[1]) {

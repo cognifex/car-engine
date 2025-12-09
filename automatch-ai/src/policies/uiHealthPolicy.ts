@@ -6,8 +6,8 @@ export type UiHealthPolicyConfig = {
 };
 
 const defaultConfig: UiHealthPolicyConfig = {
-  assetFailureThreshold: 2,
-  keyboardOverlaySignals: 1,
+  assetFailureThreshold: 4,
+  keyboardOverlaySignals: 2,
 };
 
 export type UiHealthInputs = {
@@ -49,9 +49,7 @@ export const evaluateUiHealth = (
     degradationSignals.push("agent_failures");
   }
 
-  if (resultsNotVisible && imageFailures >= config.assetFailureThreshold) {
-    errorSignals.push("ui_unusable");
-  }
+  // Kein harter ERROR nur wegen fehlender Bilder; wir bleiben im Warn-Modus.
 
   const degraded_mode = degradationSignals.length > 0;
   const render_text_only = imageFailures >= config.assetFailureThreshold;
