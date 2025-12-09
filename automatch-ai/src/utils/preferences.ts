@@ -291,7 +291,10 @@ export class PreferenceConstraintState {
   }
 
   mergeSignals(signals: Partial<PreferenceConstraintStateData>) {
-    const product = signals.product || {};
+    const product: Partial<ProductPreference> = signals.product || {};
+    const conversation: Partial<ConversationPreference> = signals.conversation || {};
+    const style: Partial<StylePreference> = signals.style || {};
+
     this.state.product.preferredCategories = mergeUnique(this.state.product.preferredCategories, product.preferredCategories || []);
     this.state.product.excludedCategories = mergeUnique(this.state.product.excludedCategories, product.excludedCategories || []);
     this.state.product.preferredAttributes = mergeUnique(this.state.product.preferredAttributes, product.preferredAttributes || []);
@@ -299,10 +302,8 @@ export class PreferenceConstraintState {
     this.state.product.useCases = mergeUnique(this.state.product.useCases || [], product.useCases || []);
     this.state.product.budget = this.state.product.budget || product.budget;
 
-    const conversation = signals.conversation || {};
     this.state.conversation = { ...this.state.conversation, ...conversation };
 
-    const style = signals.style || {};
     this.state.style.vibe = mergeUnique(this.state.style.vibe || [], style.vibe || []);
     this.state.style.brevity = style.brevity || this.state.style.brevity;
   }
