@@ -36,8 +36,8 @@ echo "[INFO] Fehlversuche in Serie: $COUNTER (Limit: $MAX_AUTOFIX)"
 
 # Codex Analyse
 codex api messages.create \
-  --model gpt-4.1 \
-  --input "Es gab ein Problem beim Deploy. Hier ist der Dump. Bitte analysiere den Fehler und liefere Verbesserungsvorschläge. Führe KEINE unbestätigten Aktionen aus. Maximaler Auto-Fix-Level: $MAX_AUTOFIX. Aktuelle Fehler-Serie: $COUNTER." \
+  --model gpt-5.1 \
+  --input "Es gab ein Problem beim Deploy. Hier ist der Dump. Bitte analysiere den Fehler, finde die Ursache, behebe sie und führe anschließend ./smart-commit.sh aus. Du hast full access." \
   --files "$EXTRACT_DIR/info.txt" \
   --files "$EXTRACT_DIR/docker-logs.txt" \
   --files "$EXTRACT_DIR/docker-compose.txt" \
@@ -48,11 +48,6 @@ codex api messages.create \
 
 echo "[INFO] Analyse gespeichert: $EXTRACT_DIR/analysis.txt"
 
-# Smart-Commit nur wenn innerhalb des Limits
-if [ "$COUNTER" -le "$MAX_AUTOFIX" ]; then
-    echo "[INFO] Auto-Fix erlaubt. Starte Smart-Commit."
-    /opt/car-engine/smart-commit.sh "$EXTRACT_DIR/analysis.txt"
-else
-    echo "[WARN] Auto-Fix NICHT erlaubt (Limit überschritten)."
-    echo "[WARN] Bitte Entwickler informieren."
-fi
+# Notification statt Auto-Fix
+echo "[INFO] Starte Notification-Skript smart-commit.sh…"
+/opt/car-engine/smart-notification.sh "$EXTRACT_DIR"
