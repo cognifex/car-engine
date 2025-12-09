@@ -80,3 +80,5 @@ git commit -m "$MESSAGE"
 git push
 
 echo "✔ Erfolgreich gepusht!"
+
+#Nur ein Test
