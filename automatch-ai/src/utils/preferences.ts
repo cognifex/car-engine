@@ -13,7 +13,6 @@ export const INTENT_TYPES = {
   META_COMMUNICATION: "meta_communication",
   KNOWLEDGE_SIGNAL: "knowledge_signal",
   MODE_REQUEST: "mode_request",
-  SMALL_TALK: "small_talk",
 } as const;
 
 export type IntentLiteral = (typeof INTENT_TYPES)[keyof typeof INTENT_TYPES];
