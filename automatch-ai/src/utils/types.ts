@@ -152,7 +152,12 @@ export const contentSchema = z.object({
 });
 export type ContentPayload = z.infer<typeof contentSchema>;
 
-export type ClientEventType = "IMAGE_LOAD_FAILED" | "NETWORK_CHANGED" | "RESULTS_NOT_VISIBLE";
+export type ClientEventType =
+  | "IMAGE_LOAD_FAILED"
+  | "NETWORK_CHANGED"
+  | "RESULTS_NOT_VISIBLE"
+  | "UI_FSM_TRANSITION"
+  | "UI_HEALTH_SIGNAL";
 
 export interface ClientEvent {
   id?: string;
@@ -167,6 +172,27 @@ export interface UIState {
   networkChanged: boolean;
   resultsNotVisible: boolean;
   lastEventAt?: string;
+}
+
+export interface ContentState {
+  has_results: boolean;
+  num_results: number;
+  clarification_required: boolean;
+  no_relevant_results: boolean;
+  fallback_used: boolean;
+  strict_matching: boolean;
+  notes?: string[];
+}
+
+export interface UIHealth {
+  degraded_mode: boolean;
+  render_text_only: boolean;
+  show_banner: boolean;
+  reason?: string;
+  note?: string;
+  error?: string;
+  severity?: "info" | "warn" | "error";
+  signals?: Record<string, unknown>;
 }
 
 export interface JeepModel {
@@ -218,4 +244,6 @@ export interface ConversationState extends Record<string, unknown> {
   jeepResults?: JeepModel[];
   validatedJeepResults?: JeepValidationResult;
   uiRecovery?: UIRecoveryInstruction;
+  content_state?: ContentState;
+  ui_health?: UIHealth;
 }

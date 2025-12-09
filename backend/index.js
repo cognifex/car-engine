@@ -41,6 +41,15 @@ const buildPayload = (result) => {
     reply,
     followUp,
     content: result?.content || { offers: [], visuals: [], definition: '' },
+    content_state: result?.content_state || {
+      has_results: Boolean(result?.content?.offers?.length),
+      num_results: result?.content?.offers?.length || 0,
+      clarification_required: false,
+      no_relevant_results: !result?.content?.offers?.length,
+      fallback_used: false,
+      strict_matching: false,
+    },
+    ui_health: result?.ui_health || {},
     debugLogs: result?.debugLogs || [],
     uiRecovery: result?.uiRecovery || {},
   };
@@ -112,6 +121,8 @@ app.post('/api/chat', async (req, res) => {
       debugLogs: payload.debugLogs || [],
       clientEvents,
       uiRecovery: payload.uiRecovery || {},
+      content_state: payload.content_state || {},
+      ui_health: payload.ui_health || {},
     });
 
     res.json({ ...payload, sessionId });

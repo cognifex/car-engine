@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Send, RefreshCw, Maximize2, Eye, WifiOff } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { buildSnapshot, evaluateUiState, DEFAULT_UI_FLAGS } from './uiState';
+import { UIFiniteStateMachine, UI_MODES, deriveMode } from './uiFsm';
 
 const MOCK_CARS = {
   initial: [
@@ -114,6 +115,8 @@ export default function AutoMatchPrototype() {
   const [consoleLogs, setConsoleLogs] = useState([]);
   const [uiRecovery, setUiRecovery] = useState({ renderTextOnly: false, degradedMode: false, showBanner: false });
   const [uiState, setUiState] = useState(DEFAULT_UI_FLAGS);
+  const [uiHealth, setUiHealth] = useState({});
+  const [uiMode, setUiMode] = useState(UI_MODES.NORMAL);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const chatScrollRef = useRef(null);
@@ -121,6 +124,7 @@ export default function AutoMatchPrototype() {
   const navRef = useRef(null);
   const rootRef = useRef(null);
   const prevUiSnapshotRef = useRef(null);
+  const uiFsmRef = useRef(new UIFiniteStateMachine(UI_MODES.NORMAL));
 
   const formatAssistantText = (text) => (
     text
@@ -290,6 +294,14 @@ export default function AutoMatchPrototype() {
     const { state, snapshot: nextSnapshot } = evaluateUiState(snapshot, prevUiSnapshotRef.current || {});
     prevUiSnapshotRef.current = nextSnapshot;
     setUiState(state);
+    const fsm = uiFsmRef.current;
+    const next = fsm.next({ serverHealth: uiHealth, localFlags: state });
+    if (next.changed) {
+      setUiMode(next.next);
+      sendClientEvent('UI_FSM_TRANSITION', { previous: next.previous, next: next.next, source: 'local', localFlags: state, serverHealth: uiHealth });
+    } else {
+      setUiMode(next.next);
+    }
 
     if (state.uiBroken || state.layoutShiftDetected || state.inputNotReachable || state.viewportObstructed || state.keyboardOverlayBlocking) {
       setUiRecovery((prev) => ({
@@ -418,6 +430,24 @@ export default function AutoMatchPrototype() {
         showBanner: Boolean(data.uiRecovery.showBanner),
         reason: data.uiRecovery.reason,
       });
+      if (data.ui_health) {
+        setUiHealth(data.ui_health);
+        const fsm = uiFsmRef.current;
+        const next = fsm.next({ serverHealth: data.ui_health, localFlags: uiState });
+        if (next.changed) {
+          setUiMode(next.next);
+          sendClientEvent('UI_FSM_TRANSITION', { previous: next.previous, next: next.next, source: 'server', serverHealth: data.ui_health, localFlags: uiState });
+        } else {
+          setUiMode(next.next);
+        }
+        setUiRecovery((prev) => ({
+          ...prev,
+          renderTextOnly: prev.renderTextOnly || Boolean(data.ui_health.render_text_only),
+          degradedMode: prev.degradedMode || Boolean(data.ui_health.degraded_mode),
+          showBanner: prev.showBanner || Boolean(data.ui_health.show_banner),
+          reason: prev.reason || data.ui_health.reason,
+        }));
+      }
 
       setMessages(prev =>
         prev.map(m => m.id === botId
@@ -476,8 +506,11 @@ export default function AutoMatchPrototype() {
     );
   };
 
-  const hasCriticalUiIssue = uiState.uiBroken || uiState.layoutShiftDetected || uiState.inputNotReachable || uiState.viewportObstructed || uiState.keyboardOverlayBlocking;
+  const hasCriticalUiIssue = uiMode === UI_MODES.ERROR || uiState.uiBroken || uiState.layoutShiftDetected || uiState.inputNotReachable || uiState.viewportObstructed || uiState.keyboardOverlayBlocking;
+  const isDegradedUi = uiMode === UI_MODES.DEGRADED_VISUALS;
   const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+  const renderTextOnly = uiRecovery.renderTextOnly || isDegradedUi;
+  const showUiBanner = uiRecovery.showBanner || isDegradedUi || hasCriticalUiIssue;
 
   const handleUiRecovery = (action) => {
     if (action === 'reload') {
@@ -511,6 +544,9 @@ export default function AutoMatchPrototype() {
           <div className="hidden md:flex items-center gap-2 text-[12px] text-gray-500">
             <span className="px-2 py-1 rounded-full bg-green-50 text-green-700 border border-green-100">Live</span>
             <span className="px-2 py-1 rounded-full bg-gray-100 border text-gray-700">Session: {sessionId.slice(0, 6)}…</span>
+            <span className={`px-2 py-1 rounded-full border ${uiMode === UI_MODES.NORMAL ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : uiMode === UI_MODES.DEGRADED_VISUALS ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+              UI: {uiMode.toLowerCase()}
+            </span>
           </div>
         </div>
       </header>
@@ -618,9 +654,9 @@ export default function AutoMatchPrototype() {
               </div>
             </div>
 
-            {uiRecovery.showBanner && (
+            {showUiBanner && (
               <div className="mb-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-sm">
-                Bilder haken gerade. Ich bleibe bei Textdaten, bis alles stabil ist.{uiRecovery.reason ? ` (${uiRecovery.reason})` : ''}
+                Bilder oder Assets haken gerade. Ich bleibe bei Textdaten, bis alles stabil ist.{uiRecovery.reason ? ` (${uiRecovery.reason})` : ''}
               </div>
             )}
 
@@ -633,7 +669,7 @@ export default function AutoMatchPrototype() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <AnimatePresence>
                     {offers.map((offer, idx) => (
-                      <OfferCard key={idx} offer={offer} onImageError={handleImageError} renderTextOnly={uiRecovery.renderTextOnly} />
+                      <OfferCard key={idx} offer={offer} onImageError={handleImageError} renderTextOnly={renderTextOnly} />
                     ))}
                   </AnimatePresence>
                 </div>
@@ -644,7 +680,7 @@ export default function AutoMatchPrototype() {
                   </div>
                 )}
 
-                {visuals.length > 0 && !uiRecovery.renderTextOnly && (
+                {visuals.length > 0 && !renderTextOnly && (
                   <div className="mt-4">
                     <h3 className="text-sm font-semibold text-gray-800 mb-2">Beispielbilder</h3>
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
