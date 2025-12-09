@@ -81,7 +81,7 @@ describe('uiState evaluation', () => {
       chatRect: { top: 0, bottom: 550 },
       viewportHeight,
       viewportWidth,
-      visualViewportHeight: 500,
+      visualViewportHeight: 450,
     });
     const { state } = evaluateUiState(snap, { positions: {} });
     expect(state.keyboardOverlayBlocking).toBe(true);

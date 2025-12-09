@@ -13,4 +13,8 @@ describe('UI FSM deriveMode', () => {
   it('enters error on critical local flags', () => {
     expect(deriveMode({}, { uiBroken: true })).toBe(UI_MODES.ERROR);
   });
+
+  it('treats keyboard overlay as degraded, not error', () => {
+    expect(deriveMode({}, { keyboardOverlayBlocking: true })).toBe(UI_MODES.DEGRADED_VISUALS);
+  });
 });

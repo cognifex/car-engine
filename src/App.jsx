@@ -517,7 +517,7 @@ export default function AutoMatchPrototype() {
     );
   };
 
-  const hasCriticalUiIssue = uiState.uiBroken || uiState.inputNotReachable || uiState.keyboardOverlayBlocking;
+  const hasCriticalUiIssue = uiState.uiBroken || uiState.inputNotReachable;
   const isDegradedUi = uiMode === UI_MODES.DEGRADED_VISUALS || uiHealth.degraded_mode;
   const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
   const renderTextOnly = uiRecovery.renderTextOnly || Boolean(uiHealth.render_text_only);
