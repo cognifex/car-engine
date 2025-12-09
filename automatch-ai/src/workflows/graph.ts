@@ -549,11 +549,13 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       output: evaluation as Record<string, unknown>,
     });
 
+    const mergedIntent = { ...(state.intent as any), frustration };
+
     return {
       evaluation,
-      intent: { ...(state.intent as any), frustration } as unknown as Record<string, unknown>,
+      intent: mergedIntent as any,
       ...withLog(state, { agent: "evaluation", input: { content_state, uiHealth } as Record<string, unknown>, output: evaluation as Record<string, unknown> }),
-    };
+    } as Partial<GraphState>;
   });
 
   graph.addNode("responseNode", async (state: GraphState) => {
