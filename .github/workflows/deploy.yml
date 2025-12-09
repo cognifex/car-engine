@@ -77,9 +77,9 @@ jobs:
 
       - name: Trigger Deploy Recovery Workflow
         if: failure()
-        uses: peter-evans/workflow-dispatch@v3
+        uses: peter-evans/workflow-dispatch@v1
         with:
           workflow: deploy-recovery.yml
           token: ${{ secrets.GITHUB_TOKEN }}
-          inputs: |
+          inputs:
             failed_run: ${{ github.run_id }}
