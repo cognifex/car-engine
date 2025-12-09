@@ -241,10 +241,29 @@ export default function AutoMatchPrototype() {
     const viewportHeight = window.innerHeight;
     const viewportWidth = window.innerWidth;
     const visualViewportHeight = window.visualViewport?.height || viewportHeight;
+    const viewportScale = window.visualViewport?.scale || 1;
     const mainRect = rootRef.current?.getBoundingClientRect();
     const inputRect = inputRef.current?.getBoundingClientRect();
     const navRect = navRef.current?.getBoundingClientRect();
     const chatRect = chatScrollRef.current?.getBoundingClientRect();
+    const visibility = {
+      main: Boolean(mainRect && mainRect.width > 0 && mainRect.height > 0 && window.getComputedStyle(rootRef.current || document.body).visibility !== 'hidden'),
+      input: Boolean(inputRect && inputRect.width > 0 && inputRect.height > 0 && window.getComputedStyle(inputRef.current || document.body).visibility !== 'hidden'),
+      nav: Boolean(navRect && navRect.width > 0 && navRect.height > 0 && window.getComputedStyle(navRef.current || document.body).visibility !== 'hidden'),
+      chat: Boolean(chatRect && chatRect.width > 0 && chatRect.height > 0 && window.getComputedStyle(chatScrollRef.current || document.body).visibility !== 'hidden'),
+    };
+    const focusable = {
+      input: Boolean(inputRef.current && !inputRef.current.disabled && inputRef.current.tabIndex !== -1),
+    };
+    const safeAreaInsets = (() => {
+      const vv = window.visualViewport;
+      if (!vv) return { top: 0, left: 0, right: 0, bottom: 0 };
+      const top = Math.max(0, vv.offsetTop || 0);
+      const left = Math.max(0, vv.offsetLeft || 0);
+      const right = Math.max(0, window.innerWidth - (vv.width + left));
+      const bottom = Math.max(0, window.innerHeight - (vv.height + top));
+      return { top, left, right, bottom };
+    })();
     const touchTargets = Array.from(navRef.current?.querySelectorAll('button') || []).map((btn) => {
       const rect = btn.getBoundingClientRect();
       return { name: btn.innerText || 'nav', width: rect.width, height: rect.height };
@@ -258,6 +277,10 @@ export default function AutoMatchPrototype() {
       viewportHeight,
       viewportWidth,
       visualViewportHeight,
+      visibility,
+      focusable,
+      safeAreaInsets,
+      viewportScale,
       touchTargets,
     });
   }, []);

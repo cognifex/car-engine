@@ -11,6 +11,23 @@ describe('uiState evaluation', () => {
     expect(state.issues[0]).toContain('Fehlende Kern-Elemente');
   });
 
+  it('flags invisible input as broken', () => {
+    const snap = buildSnapshot({
+      mainRect: { top: 0, height: 600, width: 360 },
+      inputRect: { top: 620, bottom: 660, height: 0, width: 200 },
+      navRect: { top: 660, bottom: 700, height: 44 },
+      chatRect: { top: 0, bottom: 600, height: 600 },
+      viewportHeight,
+      viewportWidth,
+      visualViewportHeight: 700,
+      visibility: { main: true, input: false, nav: true, chat: true },
+      focusable: { input: true },
+    });
+    const { state } = evaluateUiState(snap);
+    expect(state.uiBroken).toBe(true);
+    expect(state.issues.join(' ')).toContain('nicht sichtbar');
+  });
+
   it('flags input not reachable when outside viewport', () => {
     const snap = buildSnapshot({
       mainRect: { top: 0 },
@@ -20,6 +37,22 @@ describe('uiState evaluation', () => {
       viewportHeight,
       viewportWidth,
       visualViewportHeight: 700,
+    });
+    const { state } = evaluateUiState(snap);
+    expect(state.inputNotReachable).toBe(true);
+  });
+
+  it('marks input as not reachable when not focusable', () => {
+    const snap = buildSnapshot({
+      mainRect: { top: 0, height: 700 },
+      inputRect: { top: 500, bottom: 560, height: 44 },
+      navRect: { top: 640, bottom: 700 },
+      chatRect: { top: 0, bottom: 480, height: 480 },
+      viewportHeight,
+      viewportWidth,
+      visualViewportHeight: 700,
+      visibility: { main: true, input: true, nav: true, chat: true },
+      focusable: { input: false },
     });
     const { state } = evaluateUiState(snap);
     expect(state.inputNotReachable).toBe(true);
@@ -54,6 +87,21 @@ describe('uiState evaluation', () => {
     expect(state.keyboardOverlayBlocking).toBe(true);
   });
 
+  it('detects containment/zero-height bugs', () => {
+    const snap = buildSnapshot({
+      mainRect: { top: 0, height: 0 },
+      inputRect: { top: 620, bottom: 690, height: 44 },
+      navRect: { top: 640, bottom: 690 },
+      chatRect: { top: 0, bottom: 0, height: 0 },
+      viewportHeight,
+      viewportWidth,
+      visualViewportHeight: 700,
+    });
+    const { state } = evaluateUiState(snap, { positions: {} });
+    expect(state.uiBroken).toBe(true);
+    expect(state.issues.join(' ')).toContain('Containment');
+  });
+
   it('detects bottom navigation obstruction', () => {
     const snap = buildSnapshot({
       mainRect: { top: 0 },
@@ -66,5 +114,21 @@ describe('uiState evaluation', () => {
     });
     const { state } = evaluateUiState(snap, { positions: {} });
     expect(state.viewportObstructed).toBe(true);
+  });
+
+  it('flags zoom/scale drift as layout shift risk', () => {
+    const snap = buildSnapshot({
+      mainRect: { top: 0 },
+      inputRect: { top: 500, bottom: 560, height: 44 },
+      navRect: { top: 620, bottom: 670 },
+      chatRect: { top: 0, bottom: 480 },
+      viewportHeight,
+      viewportWidth,
+      visualViewportHeight: 500,
+      viewportScale: 1.2,
+    });
+    const { state } = evaluateUiState(snap, { positions: {} });
+    expect(state.layoutShiftDetected).toBe(true);
+    expect(state.issues.join(' ')).toContain('Zoom/Scaling');
   });
 });

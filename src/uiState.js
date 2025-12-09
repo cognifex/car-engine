@@ -10,13 +10,24 @@ export const DEFAULT_UI_FLAGS = {
 
 const LAYOUT_SHIFT_THRESHOLD = 40; // px
 const KEYBOARD_OVERLAY_DELTA = 150; // px difference between viewport and visualViewport
+const MIN_TOUCH_TARGET = 44; // px touch guidelines
+const ZOOM_DRIFT_THRESHOLD = 0.05; // tolerate minor zoom differences
 
 export function evaluateUiState(current, previous = {}) {
   const base = { ...DEFAULT_UI_FLAGS };
 
   if (!current) return base;
 
-  const { elements = {}, viewportHeight, visualViewportHeight } = current;
+  const {
+    elements = {},
+    viewportHeight,
+    viewportWidth,
+    visualViewportHeight,
+    visibility = {},
+    focusable = {},
+    safeAreaInsets = {},
+    viewportScale,
+  } = current;
   const issues = [];
 
   const missing = ['main', 'input', 'nav', 'chat'].filter((key) => !elements[key]);
@@ -25,8 +36,20 @@ export function evaluateUiState(current, previous = {}) {
     issues.push(`Fehlende Kern-Elemente: ${missing.join(', ')}`);
   }
 
+  const invisible = Object.entries(visibility)
+    .filter(([key, val]) => val === false && ['main', 'input', 'nav', 'chat'].includes(key))
+    .map(([key]) => key);
+  if (invisible.length > 0) {
+    base.uiBroken = true;
+    issues.push(`Kern-Elemente nicht sichtbar/renderbar: ${invisible.join(', ')}`);
+  }
+
   if (elements.input) {
-    const { top, bottom, height } = elements.input;
+    const { top = 0, bottom = 0, height = 0 } = elements.input;
+    if (focusable.input === false) {
+      base.inputNotReachable = true;
+      issues.push('Haupteingabe ist nicht fokussierbar');
+    }
     if (top < 0 || bottom > (visualViewportHeight || viewportHeight)) {
       base.inputNotReachable = true;
       issues.push('Haupteingabe ist nicht im Viewport erreichbar');
@@ -37,7 +60,8 @@ export function evaluateUiState(current, previous = {}) {
   }
 
   if (elements.nav && visualViewportHeight) {
-    if (elements.nav.bottom > visualViewportHeight - 4) {
+    const safeBottom = Math.max(0, safeAreaInsets.bottom || 0);
+    if (elements.nav.bottom > visualViewportHeight - safeBottom - 4) {
       base.viewportObstructed = true;
       issues.push('Bottom-Navigation wird abgeschnitten');
     }
@@ -49,21 +73,50 @@ export function evaluateUiState(current, previous = {}) {
       base.keyboardOverlayBlocking = true;
       issues.push('On-Screen-Keyboard überdeckt das Eingabefeld');
     }
+
+    const zoomDelta = Math.abs((viewportScale || 1) - 1);
+    if (zoomDelta > ZOOM_DRIFT_THRESHOLD) {
+      base.layoutShiftDetected = true;
+      issues.push(`Zoom/Scaling aktiv (${(viewportScale || 1).toFixed(2)}x)`);
+    }
   }
 
   if (previous.positions && current.positions) {
-    const shift = Math.abs((current.positions.inputY || 0) - (previous.positions.inputY || 0));
-    if (shift > LAYOUT_SHIFT_THRESHOLD) {
+    const shiftInput = Math.abs((current.positions.inputY || 0) - (previous.positions.inputY || 0));
+    if (shiftInput > LAYOUT_SHIFT_THRESHOLD) {
       base.layoutShiftDetected = true;
-      issues.push(`Layout-Shift von ${Math.round(shift)}px erkannt`);
+      issues.push(`Layout-Shift von ${Math.round(shiftInput)}px erkannt`);
+    }
+    const shiftNav = Math.abs((current.positions.navY || 0) - (previous.positions.navY || 0));
+    if (shiftNav > LAYOUT_SHIFT_THRESHOLD && !base.layoutShiftDetected) {
+      base.layoutShiftDetected = true;
+      issues.push(`Layout-Shift (Navigation) von ${Math.round(shiftNav)}px erkannt`);
     }
   }
 
   if (current.touchTargets?.length) {
-    const tinyTarget = current.touchTargets.find((t) => t.height < 44 || t.width < 44);
+    const tinyTarget = current.touchTargets.find(
+      (t) => t.height < MIN_TOUCH_TARGET || t.width < MIN_TOUCH_TARGET
+    );
     if (tinyTarget) {
       issues.push(`Touch-Target '${tinyTarget.name}' ist kleiner als 44px`);
     }
+  }
+
+  if (elements.main?.height === 0 || elements.chat?.height === 0) {
+    base.uiBroken = true;
+    issues.push('Layout/Containment-Bug: Hauptcontainer hat Höhe 0');
+  }
+
+  if (viewportWidth && viewportWidth < MIN_TOUCH_TARGET * 2 && elements.input) {
+    base.viewportObstructed = true;
+    issues.push('Viewport zu schmal für sichere Touch-Zonen');
+  }
+
+  const safeBottom = Math.max(0, safeAreaInsets.bottom || 0);
+  if (safeBottom > 0 && elements.chat && elements.chat.bottom > (visualViewportHeight || viewportHeight) - safeBottom) {
+    base.viewportObstructed = true;
+    issues.push('Safe-Area-Inset unten nicht freigehalten');
   }
 
   const snapshot = {
@@ -93,6 +146,10 @@ export function buildSnapshot({
   viewportWidth,
   visualViewportHeight,
   touchTargets = [],
+  visibility = {},
+  focusable = {},
+  safeAreaInsets = {},
+  viewportScale = 1,
 }) {
   return {
     elements: {
@@ -105,6 +162,10 @@ export function buildSnapshot({
     viewportWidth,
     visualViewportHeight,
     touchTargets,
+    visibility,
+    focusable,
+    safeAreaInsets,
+    viewportScale,
     positions: {
       inputY: inputRect?.top,
       navY: navRect?.top,
