@@ -18,4 +18,11 @@ describe("routingPolicy", () => {
     const decision = evaluateRouting({ intent: { intent: "informational" }, offerCount: 2, relevanceScore: 0 });
     expect(decision.content_state.fallback_used).toBe(true);
   });
+
+  it("keeps clarification off for off-domain/smalltalk", () => {
+    const decision = evaluateRouting({ intent: { intent: "small_talk" }, allowOffers: false, offDomain: true });
+    expect(decision.content_state.clarification_required).toBe(false);
+    expect(decision.content_state.fallback_used).toBe(false);
+    expect(decision.content_state.has_results).toBe(false);
+  });
 });

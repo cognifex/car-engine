@@ -329,6 +329,7 @@ const composeReply = ({
   lastReply,
   seed,
   includePlanHint,
+  intentType,
 }: {
   content_state: ContentState & { repeat_with_changed_constraints?: boolean };
   uiHealth: UIHealth;
@@ -338,9 +339,18 @@ const composeReply = ({
   lastReply?: string;
   seed: string;
   includePlanHint: boolean;
+  intentType?: string;
 }) => {
   const hashSeed = (seed || "").split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
   const pick = (arr: string[]) => arr[Math.abs(hashSeed) % arr.length];
+
+  if (intentType === INTENT_TYPES.SMALL_TALK) {
+    const smallTalkReply = pick([
+      "Klingt gut – lass uns einfach locker bleiben. Wenn du Autos sehen willst, sag Bescheid.",
+      "Alles easy. Sag mir einfach, was du suchst, oder stell Fragen – ich halte es kurz.",
+    ]);
+    return { reply: smallTalkReply, followUp: "" };
+  }
 
   let base = "";
   if (content_state.repeat_with_changed_constraints) {
@@ -373,6 +383,7 @@ const composeReply = ({
       ? pick([
           "Willst du Budget oder Marke einschränken?",
           "Soll ich nach Preis oder Marke filtern?",
+          "Sollen wir nach Budget oder nach Marken sortieren?",
         ])
       : uiHealth.render_text_only
         ? "Visuelle Elemente reduziere ich, bis die UI stabil ist."
@@ -393,7 +404,7 @@ const composeReply = ({
   return { reply, followUp };
 };
 
-const hasLLM = Boolean(settings.OPENAI_API_KEY);
+const hasLLM = Boolean(settings.OPENAI_API_KEY && process.env.NODE_ENV !== "test");
 let cachedFrontLLM: ChatOpenAI | null = null;
 const getFrontLLM = () => {
   if (!hasLLM) return null;
@@ -527,6 +538,8 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
     const prefManager = new PreferenceConstraintState(state.preferenceState);
     const updatedPreferenceState = prefManager.updateFromIntent(state.intent as any);
     const planMeta = state.planMeta || buildPlannerDecision({ ...state, preferenceState: updatedPreferenceState } as GraphState);
+    const intentType = (state.intent as any)?.intent;
+    const offDomain = intentType === INTENT_TYPES.SMALL_TALK;
 
     const history = new OffersHistory(state.offersHistory as any);
     const shouldFetchEntities =
@@ -562,6 +575,7 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
         needsClarification: planMeta.needsClarification,
         repeatWithChangedConstraints,
         allowOffers: planMeta.allowOffers,
+        offDomain,
       },
       undefined,
     );
@@ -571,10 +585,15 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       has_results: offers.length > 0,
       num_results: offers.length,
       repeat_with_changed_constraints: repeatWithChangedConstraints,
-      fallback_used: routingDecision.content_state.fallback_used || repeatWithChangedConstraints || offers.length === 0,
-      no_relevant_results: routingDecision.content_state.no_relevant_results || offers.length === 0,
+      fallback_used:
+        offDomain ? false : routingDecision.content_state.fallback_used || repeatWithChangedConstraints || offers.length === 0,
+      no_relevant_results:
+        offDomain ? false : routingDecision.content_state.no_relevant_results || offers.length === 0,
     };
     if (offers.length > 0) {
+      content_state.clarification_required = false;
+    }
+    if (offDomain) {
       content_state.clarification_required = false;
     }
 
@@ -583,7 +602,11 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       repeat_with_changed_constraints: repeatWithChangedConstraints,
     };
 
-    const gatingReason = planMeta.allowOffers ? undefined : planMeta.structured ? "waiting_for_explicit_search_intent" : "needs_structured_requirement";
+    const gatingReason = planMeta.allowOffers || offDomain
+      ? undefined
+      : planMeta.structured
+        ? "waiting_for_explicit_search_intent"
+        : "needs_structured_requirement";
 
     collector?.recordNode({
       name: "execution",
@@ -692,6 +715,7 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       lastReply: state.lastReply,
       seed: `${state.sessionId || ""}|${state.userMessage || ""}`,
       includePlanHint,
+      intentType: (state.intent as any)?.intent,
     });
     let reply = composed.reply;
     let followUp = composed.followUp;

@@ -73,6 +73,7 @@ const extractPreferenceSignals = (normalized: string) => {
   const preferredAttributes: string[] = [];
   const excludedAttributes: string[] = [];
   const useCases: string[] = [];
+  const offDomainTokens = ["wetter", "wetterbericht", "regen", "sonne", "schnee", "sturm"];
 
   const preferRegex = /\b(?:prefer|rather have|like|lieber|bevorzuge)\s+([^.,;]+?)(?:\s+over\s+([^.,;]+))?(?:\.|,|;|$)/;
   const preferMatch = normalized.match(preferRegex);
@@ -115,7 +116,11 @@ const extractPreferenceSignals = (normalized: string) => {
   const searchPattern = /\b(?:suche|zeige|zeig|finde)\s+([^.,;]+)/;
   const searchMatch = normalized.match(searchPattern);
   if (searchMatch && searchMatch[1]) {
-    preferredCategories.push(searchMatch[1].trim());
+    const candidate = searchMatch[1].trim();
+    const isOffDomain = offDomainTokens.some((token) => candidate.includes(token));
+    if (!isOffDomain) {
+      preferredCategories.push(candidate);
+    }
   }
 
   return {
@@ -165,6 +170,23 @@ export const detectIntent = (input = "") => {
         conversation: { knowledgeLevel: "novice", desiredMode: "onboarding", wantsGuidedQuestions: true, detailLevel: "low" },
         product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [] },
         style: { brevity: "normal", vibe: ["supportive"] },
+      },
+    } as const;
+  }
+
+  const weatherTokens = ["wetter", "regen", "sonne", "schnee", "wetterbericht", "wetter bericht"];
+  const smallTalkTokens = ["wie geht", "na ", "alles klar", "servus", "moin", "hi", "hallo"];
+  const isWeather = weatherTokens.some((token) => normalized.includes(token));
+  const isSmallTalk = smallTalkTokens.some((token) => normalized.includes(token));
+  if (isWeather || isSmallTalk) {
+    return {
+      intent: INTENT_TYPES.SMALL_TALK,
+      confidence: 0.65,
+      frustration: false,
+      preferenceSignals: {
+        conversation: { tone: "warm", detailLevel: "low" },
+        product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] },
+        style: { brevity: "short", vibe: ["casual"] },
       },
     } as const;
   }
@@ -248,20 +270,6 @@ export const detectIntent = (input = "") => {
       confidence: 0.72,
       frustration: false,
       preferenceSignals,
-    } as const;
-  }
-
-  const weatherTokens = ["wetter", "regen", "sonne", "schnee", "wetterbericht", "wetter bericht"];
-  if (weatherTokens.some((token) => normalized.includes(token))) {
-    return {
-      intent: INTENT_TYPES.SMALL_TALK,
-      confidence: 0.65,
-      frustration: false,
-      preferenceSignals: {
-        conversation: { tone: "warm" },
-        product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] },
-        style: { brevity: "short", vibe: ["casual"] },
-      },
     } as const;
   }
 

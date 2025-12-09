@@ -18,6 +18,7 @@ export type RoutingInputs = {
   needsClarification?: boolean;
   repeatWithChangedConstraints?: boolean;
   allowOffers?: boolean;
+  offDomain?: boolean;
 };
 
 export type RoutingDecision = {
@@ -30,13 +31,15 @@ export const evaluateRouting = (
   config: RoutingPolicyConfig = defaultConfig,
 ): RoutingDecision => {
   const allowOffers = inputs.allowOffers !== undefined ? inputs.allowOffers : true;
-  const offerCount = allowOffers ? inputs.offerCount || 0 : 0;
-  const no_relevant_results = !allowOffers || offerCount === 0;
-  const clarification_required = Boolean(inputs.needsClarification) || !allowOffers;
-  const fallback_used =
-    Boolean(inputs.relevanceScore && inputs.relevanceScore < config.clarificationThreshold) ||
-    Boolean(inputs.repeatWithChangedConstraints) ||
-    !allowOffers;
+  const offDomain = Boolean(inputs.offDomain);
+  const offerCount = allowOffers && !offDomain ? inputs.offerCount || 0 : 0;
+  const clarification_required = offDomain ? false : Boolean(inputs.needsClarification) || !allowOffers;
+  const fallback_used = offDomain
+    ? false
+    : Boolean(inputs.relevanceScore && inputs.relevanceScore < config.clarificationThreshold) ||
+      Boolean(inputs.repeatWithChangedConstraints) ||
+      !allowOffers;
+  const no_relevant_results = offDomain ? false : !allowOffers || offerCount === 0;
 
   const strict_matching = config.allowStrictMatching && !clarification_required && !fallback_used && allowOffers;
 
