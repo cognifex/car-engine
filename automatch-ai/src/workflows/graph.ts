@@ -1,356 +1,295 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
-import { ConversationState, AgentLogEntry } from "../utils/types.js";
+import {
+  AgentLogEntry,
+  ClientEvent,
+  ConversationState,
+  JeepModel,
+  JeepValidationResult,
+  UIRecoveryInstruction,
+  UIState,
+} from "../utils/types.js";
 import { SessionTraceCollector } from "../utils/sessionDump.js";
-import { ProfilingAgent } from "../agents/ProfilingAgent.js";
-import { IntentAgent } from "../agents/IntentAgent.js";
-import { RouterAgent } from "../agents/RouterAgent.js";
-import { KnowledgeAgent } from "../agents/KnowledgeAgent.js";
-import { VisualAgent } from "../agents/VisualAgent.js";
-import { MatchingAgent } from "../agents/MatchingAgent.js";
-import { FrontAgent } from "../agents/FrontAgent.js";
-import { OfferAgent } from "../agents/OfferAgent.js";
-import { aggregateContent } from "../agents/ContentAggregator.js";
-import { ProfileBuilderAgent } from "../agents/ProfileBuilderAgent.js";
+import { findJeepModels } from "../utils/jeepCatalog.js";
 
-export interface AgentBundle {
-  profiling: ProfilingAgent;
-  intent: IntentAgent;
-  router: RouterAgent;
-  knowledge: KnowledgeAgent;
-  visual: VisualAgent;
-  matching: MatchingAgent;
-  offers: OfferAgent;
-  profileBuilder: ProfileBuilderAgent;
-  front: FrontAgent;
-}
+export type GraphState = ConversationState & Record<string, unknown>;
 
-type GraphState = ConversationState & Record<string, unknown>;
+const withLog = (state: GraphState, entry: AgentLogEntry) => ({
+  debugLogs: [...(state.debugLogs || []), entry],
+});
 
-export const buildGraph = (agents: AgentBundle, collector?: SessionTraceCollector) => {
+const normalizeBrand = (message: string) => {
+  if (!message) return "";
+  const lower = message.toLowerCase();
+  if (lower.includes("jeep")) return "jeep";
+  if (lower.includes("cherokee") || lower.includes("wrangler") || lower.includes("renegade")) return "jeep";
+  return "";
+};
+
+const detectFrustration = (message: string) => {
+  const lower = message.toLowerCase();
+  const triggers = ["nervig", "frust", "funktioniert nicht", "geht nicht", "nichts zu sehen", "warum"];
+  return triggers.some((t) => lower.includes(t));
+};
+
+const deriveIntent = (state: GraphState) => {
+  const msg = state.userMessage || "";
+  const brand = normalizeBrand(msg);
+  const frustration = detectFrustration(msg);
+  const wantsJeep = brand === "jeep";
+  const isUiIssue = Boolean(state.uiState?.imageFailures) || msg.toLowerCase().includes("nichts");
+
+  if (isUiIssue) {
+    return { intent: "ui_mismatch", brand: brand || state.intent?.brand, segment: "suv", frustration } as any;
+  }
+
+  if (wantsJeep) {
+    return { intent: "car_search", brand: "jeep", segment: "suv", frustration } as any;
+  }
+
+  if (!msg || msg.length < 6) {
+    return { intent: "needs_clarification", brand: brand || "", segment: "suv", frustration } as any;
+  }
+
+  return { intent: "car_search", brand: brand || state.intent?.brand || "", segment: "suv", frustration } as any;
+};
+
+const aggregateClientEvents = (events: ClientEvent[] = []): UIState => {
+  const failed = events.filter((e) => e.type === "IMAGE_LOAD_FAILED");
+  const net = events.some((e) => e.type === "NETWORK_CHANGED");
+  const invisible = events.some((e) => e.type === "RESULTS_NOT_VISIBLE");
+  const last = events.length > 0 ? events[events.length - 1] : undefined;
+  return {
+    imageFailures: failed.length,
+    failedModels: failed.map((e) => String(e.meta?.model || e.meta?.modelId || "")).filter(Boolean),
+    networkChanged: net,
+    resultsNotVisible: invisible,
+    lastEventAt: last?.at,
+  };
+};
+
+const buildRoute = (intent: string, brand: string, uiState: UIState) => {
+  const jeepFocus = brand === "jeep";
+  return {
+    includeKnowledge: false,
+    includeVisuals: false,
+    includeMatching: false,
+    includeOffers: true,
+    strictOffers: true,
+    retryMatching: false,
+    jeepFocus,
+    needsClarification: intent === "needs_clarification" || (!brand && intent !== "ui_mismatch"),
+    runUiRecovery: intent === "ui_mismatch" || uiState.imageFailures > 0 || uiState.resultsNotVisible,
+  } as any;
+};
+
+const jeepSearch = (): JeepModel[] => {
+  return findJeepModels().map((entry) => ({
+    id: entry.id,
+    model: entry.model,
+    year: entry.year,
+    power: entry.power,
+    drivetrain: entry.drivetrain,
+    fuel: entry.fuel,
+    summary: entry.summary,
+    image: entry.image,
+  }));
+};
+
+const validateJeepResults = (models: JeepModel[], uiState: UIState): JeepValidationResult => {
+  const issues: string[] = [];
+  let renderTextOnly = false;
+
+  if (!models || models.length === 0) {
+    issues.push("Keine Jeep-Modelle gefunden");
+    renderTextOnly = true;
+  }
+
+  if (uiState.imageFailures > 0) {
+    issues.push("Bilder laden nicht zuverlässig");
+    renderTextOnly = true;
+  }
+
+  const validated = models.map((m) => ({
+    ...m,
+    imageOptional: true,
+    fallbackReason: uiState.imageFailures > 0 ? "Bilder ausgefallen" : "",
+  }));
+
+  return { models: validated, issues, renderTextOnly };
+};
+
+const buildRecovery = (validation: JeepValidationResult, uiState: UIState): UIRecoveryInstruction => {
+  const renderTextOnly = validation.renderTextOnly || uiState.imageFailures > 0;
+  const showBanner = renderTextOnly || uiState.networkChanged || uiState.resultsNotVisible;
+  const reasons = [] as string[];
+  if (uiState.imageFailures > 0) reasons.push("Bilder fehlgeschlagen");
+  if (uiState.networkChanged) reasons.push("Netzwerk geändert");
+  if (uiState.resultsNotVisible) reasons.push("Ergebnisse nicht sichtbar");
+  if (validation.issues.length > 0) reasons.push(...validation.issues);
+  return {
+    renderTextOnly,
+    degradedMode: renderTextOnly,
+    showBanner,
+    reason: reasons.join("; ") || undefined,
+    note: renderTextOnly ? "Zeige alle Jeep-Daten auch ohne Bilder." : undefined,
+  };
+};
+
+const buildOffersFromJeep = (models: JeepModel[]) => {
+  return models.map((m) => ({
+    title: `${m.model} (${m.year})`,
+    model: m.model,
+    price: 0,
+    dealer: "Jeep Direkt-Infos",
+    link: "",
+    image_url: m.image || "",
+    location: "",
+    mileage: "",
+    badge: [m.power, m.drivetrain, m.fuel].filter(Boolean).join(" • "),
+    created_at: new Date().toISOString(),
+    vin: m.id,
+    isOffroadRelevant: true,
+    isExactMatchToSuggestion: true,
+    relevanceScore: 1,
+    source: "jeep-catalog",
+    fallbackReason: m.fallbackReason || "",
+  }));
+};
+
+const buildResponseText = (
+  validation: JeepValidationResult,
+  recovery: UIRecoveryInstruction,
+  intentBrand: string,
+  frustration: boolean,
+) => {
+  const lines: string[] = [];
+  if (frustration || recovery.renderTextOnly) {
+    lines.push("Ich sehe, das ist gerade frustrierend – die Bilder wollen nicht alle laden.");
+  }
+  if (recovery.renderTextOnly) {
+    lines.push("Kein Stress: Ich gebe dir die Jeep-Infos sofort als Text, damit nichts verloren geht.");
+  }
+  if (intentBrand === "jeep" && validation.models.length > 0) {
+    const highlights = validation.models
+      .slice(0, 4)
+      .map((m) => `${m.model} ${m.year}: ${m.power}, ${m.drivetrain}, ${m.fuel}. ${m.summary}`)
+      .join(" \n");
+    lines.push("Hier sind die wichtigsten Jeep-Modelle:");
+    lines.push(highlights);
+  } else if (validation.models.length === 0) {
+    lines.push("Ich suche nach Jeep-Details, liefere dir aber direkt Text, falls Bilder fehlen.");
+  }
+  lines.push("Sag mir gerne noch Budget oder Einsatz (Stadt, Offroad, Familien), dann verfeinere ich.");
+  return lines.join(" ").trim();
+};
+
+export const buildGraph = (collector?: SessionTraceCollector) => {
   const graph = new StateGraph<GraphState>({
     channels: {
       userMessage: null,
       history: null,
-      profiling: null,
       intent: null,
       route: null,
-      knowledge: null,
-      visuals: null,
-      matches: null,
-      offers: null,
-      offersMeta: null,
+      jeepResults: null,
+      validatedJeepResults: null,
+      uiState: null,
+      clientEvents: null,
+      uiRecovery: null,
       content: null,
-      profile: null,
-      offerSearchState: null,
       response: null,
       debugLogs: null,
     },
   });
 
-  const withLog = (state: GraphState, entry: AgentLogEntry) => ({
-    debugLogs: [...(state.debugLogs || []), entry],
+  graph.addNode("clientEventNode", async (state: GraphState) => {
+    const events = state.clientEvents || [];
+    const uiState = aggregateClientEvents(events as ClientEvent[]);
+    collector?.recordNode({ name: "clientEvent", input: { events } as Record<string, unknown>, output: uiState as unknown as Record<string, unknown> });
+    return { uiState, ...withLog(state, { agent: "clientEvent", input: { events } as Record<string, unknown>, output: uiState as unknown as Record<string, unknown> }) };
   });
 
-  graph.addNode("profilingNode", async (state: GraphState) => {
-    const input = { message: state.userMessage, history: state.history || [] };
-    const startedAt = new Date();
-    const output = await agents.profiling.run(input);
-    collector?.recordNode({
-      name: "profiling",
-      input: input as Record<string, unknown>,
-      output: output as Record<string, unknown>,
-      startedAt,
-      endedAt: new Date(),
-    });
-    return {
-      profiling: output,
-      ...withLog(state, { agent: "profiling", input, output: output as Record<string, unknown> }),
-    };
-  });
-
-  graph.addNode("intentNode", async (state: GraphState) => {
-    const input = {
-      message: state.userMessage,
-      profiling: state.profiling,
-      history: state.history,
-    };
-    const startedAt = new Date();
-    const output = await agents.intent.run(input);
-    collector?.recordNode({
-      name: "intent",
-      input: input as Record<string, unknown>,
-      output: output as Record<string, unknown>,
-      startedAt,
-      endedAt: new Date(),
-    });
-    return {
-      intent: output,
-      ...withLog(state, { agent: "intent", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
-    };
+  graph.addNode("intentParserNode", async (state: GraphState) => {
+    const intent = deriveIntent(state);
+    collector?.recordNode({ name: "intentParser", input: { message: state.userMessage, uiState: state.uiState } as Record<string, unknown>, output: intent as Record<string, unknown> });
+    return { intent, ...withLog(state, { agent: "intentParser", input: { message: state.userMessage, uiState: state.uiState } as Record<string, unknown>, output: intent as Record<string, unknown> }) };
   });
 
   graph.addNode("routerNode", async (state: GraphState) => {
-    const input = {
-      message: state.userMessage,
-      profiling: state.profiling,
-      intent: state.intent,
-      history: state.history,
-    };
-    const startedAt = new Date();
-    const output = await agents.router.run(input);
-    const lowerMsg = (state.userMessage || "").toLowerCase();
-    const retroFlag = lowerMsg.includes("retro") || lowerMsg.includes("oldtimer") || lowerMsg.includes("klassik") || lowerMsg.includes("vintage") || lowerMsg.includes("youngtimer");
-    const offroadFlag = lowerMsg.includes("gelände") || lowerMsg.includes("offroad") || (state.intent?.fields || []).some((f: any) => f.key === "use_case" && f.value.toLowerCase().includes("gelände"));
-    const clarificationFlag = state.intent?.intent === "needs_clarification" || state.intent?.intent === "refine_requirements";
-    const dissatisfactionFlag = state.intent?.intent === "dissatisfaction";
-
-    let patchedRoute = { ...output };
-
-    if (clarificationFlag) {
-      patchedRoute = {
-        ...patchedRoute,
-        includeKnowledge: true,
-        includeMatching: true,
-        includeOffers: false,
-        strictOffers: offroadFlag,
-      };
-    }
-
-    if (dissatisfactionFlag) {
-      patchedRoute = {
-        ...patchedRoute,
-        includeKnowledge: true,
-        includeMatching: true,
-        includeOffers: true,
-        strictOffers: true,
-        retryMatching: true,
-      };
-    }
-
-    if (offroadFlag) {
-      patchedRoute = { ...patchedRoute, strictOffers: true };
-    }
-
-    if (retroFlag) {
-      patchedRoute = { ...patchedRoute, includeOffers: true, includeMatching: false };
-    }
-
-    collector?.recordNode({
-      name: "router",
-      input: input as Record<string, unknown>,
-      output: patchedRoute as Record<string, unknown>,
-      startedAt,
-      endedAt: new Date(),
-    });
-    return {
-      route: patchedRoute,
-      ...withLog(state, { agent: "router", input: input as Record<string, unknown>, output: patchedRoute as Record<string, unknown> }),
-    };
+    const route = buildRoute(state.intent?.intent || "unknown", state.intent?.brand || "", state.uiState || aggregateClientEvents());
+    collector?.recordNode({ name: "router", input: { intent: state.intent, uiState: state.uiState } as Record<string, unknown>, output: route as unknown as Record<string, unknown> });
+    return { route, ...withLog(state, { agent: "router", input: { intent: state.intent, uiState: state.uiState } as Record<string, unknown>, output: route as unknown as Record<string, unknown> }) };
   });
 
-  graph.addNode("knowledgeNode", async (state: GraphState) => {
-    if (state.route?.includeKnowledge === false) {
-      collector?.recordNode({ name: "knowledge", input: {}, output: { skipped: true }, startedAt: new Date(), endedAt: new Date() });
+  graph.addNode("jeepSearchNode", async (state: GraphState) => {
+    const route = state.route as any;
+    if (!route?.jeepFocus) {
+      collector?.recordNode({ name: "jeepSearch", input: {}, output: { skipped: true } });
+      return { jeepResults: [] };
+    }
+    const results = jeepSearch();
+    collector?.recordNode({ name: "jeepSearch", input: { brand: state.intent?.brand } as Record<string, unknown>, output: { models: results } as Record<string, unknown> });
+    return { jeepResults: results, ...withLog(state, { agent: "jeepSearch", input: { brand: state.intent?.brand } as Record<string, unknown>, output: { models: results } as Record<string, unknown> }) };
+  });
+
+  graph.addNode("groundingAndValidationNode", async (state: GraphState) => {
+    const validation = validateJeepResults((state.jeepResults as JeepModel[]) || [], state.uiState || aggregateClientEvents());
+    collector?.recordNode({ name: "groundingAndValidation", input: { jeepResults: state.jeepResults, uiState: state.uiState } as Record<string, unknown>, output: validation as unknown as Record<string, unknown> });
+    return { validatedJeepResults: validation, ...withLog(state, { agent: "groundingAndValidation", input: { jeepResults: state.jeepResults, uiState: state.uiState } as Record<string, unknown>, output: validation as unknown as Record<string, unknown> }) };
+  });
+
+  graph.addNode("errorRecoveryNodeUI", async (state: GraphState) => {
+    const recovery = buildRecovery(state.validatedJeepResults as JeepValidationResult, state.uiState || aggregateClientEvents());
+    collector?.recordNode({ name: "errorRecoveryUI", input: { validation: state.validatedJeepResults, uiState: state.uiState } as Record<string, unknown>, output: recovery as unknown as Record<string, unknown> });
+    return { uiRecovery: recovery, ...withLog(state, { agent: "errorRecoveryUI", input: { validation: state.validatedJeepResults, uiState: state.uiState } as Record<string, unknown>, output: recovery as unknown as Record<string, unknown> }) };
+  });
+
+  graph.addNode("clarificationNode", async (state: GraphState) => {
+    const route = state.route as any;
+    if (!route?.needsClarification) {
+      collector?.recordNode({ name: "clarification", input: {}, output: { skipped: true } });
       return {};
     }
-    const input = {
-      message: state.userMessage,
-      intent: state.intent,
-      profiling: state.profiling,
-      history: state.history,
-    };
-    const startedAt = new Date();
-    const output = await agents.knowledge.run(input);
-    collector?.recordNode({
-      name: "knowledge",
-      input: input as Record<string, unknown>,
-      output: output as Record<string, unknown>,
-      startedAt,
-      endedAt: new Date(),
-    });
-    return {
-      knowledge: output,
-      ...withLog(state, { agent: "knowledge", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
-    };
+    const reply = "Kurzer Check: Geht es dir um Jeep-Modelle? Teile Budget oder Einsatzgebiet (z.B. Stadt, Offroad).";
+    collector?.recordNode({ name: "clarification", input: { intent: state.intent } as Record<string, unknown>, output: { reply } as Record<string, unknown> });
+    return { response: { reply, followUp: "Ich helfe sofort, wenn du mehr Details gibst." }, content: { offers: [], visuals: [], definition: "" } };
   });
 
-  graph.addNode("profileNode", async (state: GraphState) => {
-    const input = {
-      message: state.userMessage,
-      profiling: state.profiling,
-      intent: state.intent,
-      history: state.history,
-    };
-    const startedAt = new Date();
-    const output = await agents.profileBuilder.run(input);
-    collector?.recordNode({
-      name: "profileBuilder",
-      input: input as Record<string, unknown>,
-      output: output as Record<string, unknown>,
-      startedAt,
-      endedAt: new Date(),
-    });
-    return {
-      profile: output,
-      ...withLog(state, { agent: "profileBuilder", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
-    };
-  });
-
-  graph.addNode("visualNode", async (state: GraphState) => {
-    if (state.route?.includeVisuals === false) {
-      collector?.recordNode({ name: "visual", input: {}, output: { skipped: true }, startedAt: new Date(), endedAt: new Date() });
-      return {};
-    }
-    const input = { intent: state.intent, knowledge: state.knowledge, history: state.history };
-    const startedAt = new Date();
-    const output = await agents.visual.run(input);
-    collector?.recordNode({
-      name: "visual",
-      input: input as Record<string, unknown>,
-      output: output as Record<string, unknown>,
-      startedAt,
-      endedAt: new Date(),
-    });
-    return {
-      visuals: output,
-      ...withLog(state, { agent: "visual", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
-    };
-  });
-
-  graph.addNode("matchingNode", async (state: GraphState) => {
-    if (state.route?.includeMatching === false) {
-      collector?.recordNode({ name: "matching", input: {}, output: { skipped: true }, startedAt: new Date(), endedAt: new Date() });
-      return {};
-    }
-    const input = {
-      intent: state.intent,
-      profiling: state.profiling,
-      history: state.history,
-    };
-    const startedAt = new Date();
-    const output = await agents.matching.run(input);
-    collector?.recordNode({
-      name: "matching",
-      input: input as Record<string, unknown>,
-      output: output as Record<string, unknown>,
-      startedAt,
-      endedAt: new Date(),
-    });
-    return {
-      matches: output,
-      ...withLog(state, { agent: "matching", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
-    };
-  });
-
-  graph.addNode("offerNode", async (state: GraphState) => {
-    if (state.route?.includeOffers === false) {
-      collector?.recordNode({ name: "offers", input: {}, output: { skipped: true }, startedAt: new Date(), endedAt: new Date() });
-      return {};
-    }
-    const matchModel = state.matches?.suggestions?.[0]?.model;
-    const modelParts = matchModel ? matchModel.split(" ") : [];
-    const brandGuess = modelParts[0];
-    const modelGuess = modelParts.slice(1).join(" ");
-    const input = {
-      intent: state.intent?.intent,
-      fields: state.intent?.fields,
-      profiling: state.profiling,
-      brand: state.intent?.fields?.find(f => f.key === "brand")?.value || brandGuess,
-      model: state.intent?.fields?.find(f => f.key === "model")?.value || modelGuess,
-      matchModel,
-      userMessage: state.userMessage,
-      history: state.history,
-      matches: state.matches,
-      route: state.route,
-      profile: state.profile,
-      offerSearchState: state.offerSearchState,
-    };
-    const startedAt = new Date();
-    const output = await agents.offers.run(input as any);
-    collector?.recordNode({
-      name: "offers",
-      input: input as Record<string, unknown>,
-      output: output as Record<string, unknown>,
-      startedAt,
-      endedAt: new Date(),
-    });
-    return {
-      offers: output.offers,
-      offersMeta: output.meta,
-      offerSearchState: output.nextSearchState,
-      ...withLog(state, { agent: "offers", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
-    };
-  });
-
-  graph.addNode("contentNode", async (state: GraphState) => {
-    const visuals = state.visuals?.image_urls || [];
-    const offers = state.offers || [];
-    const definition = state.knowledge?.explanation || "";
-    const aggregated = aggregateContent({
+  graph.addNode("responseNode", async (state: GraphState) => {
+    const validation = (state.validatedJeepResults as JeepValidationResult) || { models: [], issues: [], renderTextOnly: false };
+    const recovery = (state.uiRecovery as UIRecoveryInstruction) || { renderTextOnly: false, degradedMode: false, showBanner: false };
+    const reply = buildResponseText(validation, recovery, state.intent?.brand || "", Boolean(state.intent?.frustration));
+    const offers = buildOffersFromJeep(validation.models || []);
+    const content = {
       offers,
-      visuals,
-      knowledgeText: definition,
-      matches: state.matches,
-      profile: state.profile,
-      offersMeta: state.offersMeta,
-    });
-    const startedAt = new Date();
-    const endedAt = new Date();
-    collector?.recordNode({
-      name: "contentAggregator",
-      input: { offers, visuals, definition } as Record<string, unknown>,
-      output: aggregated as Record<string, unknown>,
-      startedAt,
-      endedAt,
-    });
+      visuals: recovery.renderTextOnly ? [] : offers.map((o) => o.image_url).filter(Boolean).slice(0, 6),
+      definition: "Jeep-Schnellüberblick",
+      offerDiagnostics: {
+        queryModels: offers.map((o) => o.model),
+        offroadRequired: true,
+        fallbackUsed: recovery.renderTextOnly,
+        noRelevantOffers: offers.length === 0,
+        strategy: recovery.renderTextOnly ? "text-only" : "standard",
+        failureCount: (state.uiState?.imageFailures || 0),
+        relevance: offers.map((o) => ({ model: o.model, isOffroadRelevant: true, isExactMatchToSuggestion: true, relevanceScore: 1 })),
+      },
+    };
+    collector?.recordNode({ name: "response", input: { validation, recovery } as Record<string, unknown>, output: { reply, followUp: "" } as Record<string, unknown> });
     return {
-      content: aggregated,
-      ...withLog(state, { agent: "contentAggregator", input: { offers, visuals, definition } as Record<string, unknown>, output: aggregated as Record<string, unknown> }),
+      response: { reply, followUp: recovery.renderTextOnly ? "Ich bleibe im Textmodus, bis die Bilder wieder laufen." : "" },
+      content,
+      ...withLog(state, { agent: "response", input: { validation, recovery } as Record<string, unknown>, output: { reply, followUp: "" } as Record<string, unknown> }),
     };
   });
 
-  graph.addNode("frontNode", async (state: GraphState) => {
-    const input = {
-      message: state.userMessage,
-      profiling: state.profiling,
-      intent: state.intent,
-      knowledge: state.knowledge,
-      visuals: state.visuals,
-      matches: state.matches,
-      offers: state.offers,
-      profile: state.profile,
-      offersMeta: state.offersMeta,
-      content: state.content,
-      route: state.route,
-      history: state.history,
-      debugLogs: state.debugLogs,
-    };
-    const startedAt = new Date();
-    const output = await agents.front.run(input);
-    collector?.recordNode({
-      name: "front",
-      input: input as Record<string, unknown>,
-      output: output as Record<string, unknown>,
-      startedAt,
-      endedAt: new Date(),
-    });
-    return {
-      response: output,
-      ...withLog(state, { agent: "front", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
-    };
-  });
-
-  graph.addEdge(START, "profilingNode" as any);
-  graph.addEdge("profilingNode" as any, "intentNode" as any);
-  graph.addEdge("intentNode" as any, "routerNode" as any);
-  graph.addEdge("routerNode" as any, "knowledgeNode" as any);
-  graph.addEdge("knowledgeNode" as any, "profileNode" as any);
-  graph.addEdge("profileNode" as any, "visualNode" as any);
-  graph.addEdge("visualNode" as any, "matchingNode" as any);
-  graph.addEdge("matchingNode" as any, "offerNode" as any);
-  graph.addEdge("offerNode" as any, "contentNode" as any);
-  graph.addEdge("contentNode" as any, "frontNode" as any);
-  graph.addEdge("frontNode" as any, END);
+  graph.addEdge(START, "clientEventNode" as any);
+  graph.addEdge("clientEventNode" as any, "intentParserNode" as any);
+  graph.addEdge("intentParserNode" as any, "routerNode" as any);
+  graph.addEdge("routerNode" as any, "jeepSearchNode" as any);
+  graph.addEdge("jeepSearchNode" as any, "groundingAndValidationNode" as any);
+  graph.addEdge("groundingAndValidationNode" as any, "errorRecoveryNodeUI" as any);
+  graph.addEdge("errorRecoveryNodeUI" as any, "clarificationNode" as any);
+  graph.addEdge("clarificationNode" as any, "responseNode" as any);
+  graph.addEdge("responseNode" as any, END);
 
   return graph.compile();
 };

@@ -36,26 +36,33 @@ const ChatMessage = ({ msg }) => {
   );
 };
 
-const OfferCard = ({ offer }) => (
-  <motion.div 
+const OfferCard = ({ offer, onImageError, renderTextOnly }) => (
+  <motion.div
     layout
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
     className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex flex-col gap-2"
   >
-    <div className="h-28 bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-600 overflow-hidden">
-      {offer.image_url ? (
-        <img
-          src={offer.image_url}
-          alt={offer.title || "Fahrzeug"}
-          className="object-cover h-full w-full rounded"
-        />
-      ) : (
-        <div className="h-full w-full bg-gray-200 flex items-center justify-center text-xs text-gray-500">
-          Bild nicht verfügbar
-        </div>
-      )}
-    </div>
+    {!renderTextOnly && (
+      <div className="h-28 bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-600 overflow-hidden">
+        {offer.image_url ? (
+          <img
+            src={offer.image_url}
+            alt={offer.title || "Fahrzeug"}
+            className="object-cover h-full w-full rounded"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = "";
+              onImageError?.(offer);
+            }}
+          />
+        ) : (
+          <div className="h-full w-full bg-gray-200 flex items-center justify-center text-xs text-gray-500">
+            Bild nicht verfügbar
+          </div>
+        )}
+      </div>
+    )}
     <div className="flex justify-between items-center">
       <h3 className="font-bold text-sm line-clamp-1">{offer.title || offer.model}</h3>
       <span className="text-blue-600 font-bold text-xs bg-blue-50 px-2 py-1 rounded">
@@ -85,6 +92,7 @@ export default function AutoMatchPrototype() {
   const [sessionId, setSessionId] = useState(() => uuidv4());
   const [agentLog, setAgentLog] = useState([]);
   const [consoleLogs, setConsoleLogs] = useState([]);
+  const [uiRecovery, setUiRecovery] = useState({ renderTextOnly: false, degradedMode: false, showBanner: false });
   const messagesEndRef = useRef(null);
 
   const formatAssistantText = (text) => (
@@ -185,6 +193,35 @@ export default function AutoMatchPrototype() {
     };
   }, []);
 
+  const sendClientEvent = async (eventType, meta = {}) => {
+    try {
+      await fetch('/api/client-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, eventType, meta }),
+      });
+    } catch (err) {
+      console.warn('client-event failed', err);
+    }
+  };
+
+  const handleImageError = (offer) => {
+    sendClientEvent('IMAGE_LOAD_FAILED', { model: offer?.model || offer?.title, imageUrl: offer?.image_url });
+    setUiRecovery((prev) => ({ ...prev, renderTextOnly: true, degradedMode: true, showBanner: true, reason: 'Bild konnte nicht geladen werden' }));
+  };
+
+  useEffect(() => {
+    const handler = () => {
+      sendClientEvent('NETWORK_CHANGED', { online: navigator.onLine });
+    };
+    window.addEventListener('online', handler);
+    window.addEventListener('offline', handler);
+    return () => {
+      window.removeEventListener('online', handler);
+      window.removeEventListener('offline', handler);
+    };
+  }, [sessionId]);
+
   // Poll agent log
   useEffect(() => {
     if (!sessionId) return;
@@ -265,6 +302,12 @@ export default function AutoMatchPrototype() {
       const followText = formatAssistantText(data.followUp || '');
       const combined = [replyText, followText].filter(Boolean).join(' ').trim();
       if (data.sessionId) setSessionId(data.sessionId);
+      if (data.uiRecovery) setUiRecovery({
+        renderTextOnly: Boolean(data.uiRecovery.renderTextOnly),
+        degradedMode: Boolean(data.uiRecovery.degradedMode),
+        showBanner: Boolean(data.uiRecovery.showBanner),
+        reason: data.uiRecovery.reason,
+      });
 
       setMessages(prev =>
         prev.map(m => m.id === botId
@@ -333,6 +376,11 @@ export default function AutoMatchPrototype() {
       </div>
       <div className="flex-1 p-6 bg-gray-100 overflow-y-auto">
         <h2 className="text-xl font-bold mb-4 text-gray-700">Live-Angebote & Bilder</h2>
+        {uiRecovery.showBanner && (
+          <div className="mb-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-sm">
+            Bilder haken gerade. Ich bleibe bei Textdaten, bis alles stabil ist.{uiRecovery.reason ? ` (${uiRecovery.reason})` : ''}
+          </div>
+        )}
         <div className="mb-3">
           <div className="bg-white border border-gray-200 rounded-lg p-3 text-sm text-gray-700 mb-2">
             <div className="font-semibold text-gray-800 mb-1">Agenten-Log (Session {sessionId})</div>
@@ -375,10 +423,12 @@ export default function AutoMatchPrototype() {
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <AnimatePresence>
-            {offers.map((offer, idx) => <OfferCard key={idx} offer={offer} />)}
+            {offers.map((offer, idx) => (
+              <OfferCard key={idx} offer={offer} onImageError={handleImageError} renderTextOnly={uiRecovery.renderTextOnly} />
+            ))}
           </AnimatePresence>
         </div>
-        {visuals.length > 0 && (
+        {visuals.length > 0 && !uiRecovery.renderTextOnly && (
           <div className="mt-4">
             <h3 className="text-sm font-semibold text-gray-600 mb-2">Beispielbilder</h3>
             <div className="grid grid-cols-3 md:grid-cols-4 gap-3">

@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import {
+  ClientEvent,
   ConversationMessage,
   ContentPayload,
   IntentOutput,
@@ -9,6 +10,8 @@ import {
   Offer,
   PerfectProfile,
   RouteDecision,
+  UIRecoveryInstruction,
+  UIState,
 } from "./types.js";
 
 export interface NodeTrace {
@@ -46,6 +49,9 @@ export interface SessionTurnTrace {
   content?: ContentPayload;
   uiPresentedOffers?: Offer[];
   semanticallyFocusedModels?: string[];
+  clientEvents?: ClientEvent[];
+  uiState?: UIState;
+  uiRecovery?: UIRecoveryInstruction;
 }
 
 export interface ConversationEntry {
@@ -66,6 +72,7 @@ export interface SessionDump {
   conversation: ConversationEntry[];
   turns: SessionTurnTrace[];
   errors: { node: string; message: string; stack?: string }[];
+  clientEvents?: ClientEvent[];
 }
 
 const defaultBaseDir = () => {
@@ -147,6 +154,7 @@ interface TurnContext {
   startedAt: Date;
   history: ConversationMessage[];
   userMessage: string;
+  clientEvents: ClientEvent[];
 }
 
 export class SessionTraceCollector {
@@ -158,6 +166,7 @@ export class SessionTraceCollector {
   private conversation: ConversationEntry[] = [];
   private turns: SessionTurnTrace[] = [];
   private errors: { node: string; message: string; stack?: string }[] = [];
+  private clientEvents: ClientEvent[] = [];
   private turnCounter = 0;
   private currentTurn?: TurnContext;
   private currentNodes: NodeTrace[] = [];
@@ -170,7 +179,7 @@ export class SessionTraceCollector {
     this.startedAt = new Date();
   }
 
-  startTurn(payload: { userMessage: string; history: ConversationMessage[] }) {
+  startTurn(payload: { userMessage: string; history: ConversationMessage[]; clientEvents?: ClientEvent[] }) {
     try {
       this.turnCounter += 1;
       this.currentNodes = [];
@@ -179,7 +188,9 @@ export class SessionTraceCollector {
         startedAt: new Date(),
         history: payload.history || [],
         userMessage: payload.userMessage,
+        clientEvents: payload.clientEvents || [],
       };
+      this.clientEvents = [...this.clientEvents, ...(payload.clientEvents || [])];
     } catch (err) {
       console.error("SessionTraceCollector startTurn failed", err);
     }
@@ -246,6 +257,9 @@ export class SessionTraceCollector {
         content: payload.state.content as ContentPayload,
         uiPresentedOffers: (payload.state.content as ContentPayload | undefined)?.offers,
         semanticallyFocusedModels: this.deriveSemanticModels(payload.state),
+        clientEvents: (payload.state.clientEvents as ClientEvent[]) || this.currentTurn.clientEvents || [],
+        uiState: payload.state.uiState as UIState,
+        uiRecovery: payload.state.uiRecovery as UIRecoveryInstruction,
       };
 
       const convoTimestamp = endedAt.toISOString();
@@ -294,6 +308,7 @@ export class SessionTraceCollector {
         conversation: this.conversation,
         turns: this.turns,
         errors: this.errors,
+        clientEvents: this.clientEvents,
       };
 
       this.store.merge(dump);

@@ -26,14 +26,20 @@ export const intentSchema = z.object({
     "explanation_request",
     "refine_requirements",
     "dissatisfaction",
+    "ui_mismatch",
     "unknown",
   ]),
-  fields: z.array(
-    z.object({
-      key: z.string(),
-      value: z.string(),
-    })
-  ).default([]),
+  fields: z
+    .array(
+      z.object({
+        key: z.string(),
+        value: z.string(),
+      })
+    )
+    .default([]),
+  brand: z.string().optional(),
+  segment: z.string().optional(),
+  frustration: z.boolean().default(false),
 });
 export type IntentOutput = z.infer<typeof intentSchema>;
 
@@ -146,6 +152,50 @@ export const contentSchema = z.object({
 });
 export type ContentPayload = z.infer<typeof contentSchema>;
 
+export type ClientEventType = "IMAGE_LOAD_FAILED" | "NETWORK_CHANGED" | "RESULTS_NOT_VISIBLE";
+
+export interface ClientEvent {
+  id?: string;
+  type: ClientEventType;
+  at: string;
+  meta?: Record<string, unknown>;
+}
+
+export interface UIState {
+  imageFailures: number;
+  failedModels: string[];
+  networkChanged: boolean;
+  resultsNotVisible: boolean;
+  lastEventAt?: string;
+}
+
+export interface JeepModel {
+  id: string;
+  model: string;
+  year: string;
+  power: string;
+  drivetrain: string;
+  fuel: string;
+  summary: string;
+  image?: string;
+  imageOptional?: boolean;
+  fallbackReason?: string;
+}
+
+export interface JeepValidationResult {
+  models: JeepModel[];
+  issues: string[];
+  renderTextOnly: boolean;
+}
+
+export interface UIRecoveryInstruction {
+  renderTextOnly: boolean;
+  showBanner: boolean;
+  degradedMode: boolean;
+  reason?: string;
+  note?: string;
+}
+
 export interface ConversationState extends Record<string, unknown> {
   userMessage: string;
   history?: ConversationMessage[];
@@ -163,4 +213,9 @@ export interface ConversationState extends Record<string, unknown> {
   offerSearchState?: { failureCount?: number; lastStrategy?: string };
   debugLogs?: AgentLogEntry[];
   sessionId?: string;
+  clientEvents?: ClientEvent[];
+  uiState?: UIState;
+  jeepResults?: JeepModel[];
+  validatedJeepResults?: JeepValidationResult;
+  uiRecovery?: UIRecoveryInstruction;
 }

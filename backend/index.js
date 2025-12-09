@@ -21,6 +21,7 @@ const apifyModulePath = path.join(__dirname, '..', 'automatch-ai', 'dist', 'util
 const specsModulePath = path.join(__dirname, '..', 'automatch-ai', 'dist', 'utils', 'specs.js');
 const sessionLogsDir = path.join(__dirname, 'session-logs');
 const sessionDumpModulePath = path.join(__dirname, '..', 'automatch-ai', 'dist', 'utils', 'sessionDump.js');
+const eventStore = new Map();
 
 // Lazy-load the LangGraph pipeline built in automatch-ai/dist
 const pipelineModulePath = path.join(__dirname, '..', 'automatch-ai', 'dist', 'workflows', 'pipeline.js');
@@ -41,6 +42,7 @@ const buildPayload = (result) => {
     followUp,
     content: result?.content || { offers: [], visuals: [], definition: '' },
     debugLogs: result?.debugLogs || [],
+    uiRecovery: result?.uiRecovery || {},
   };
 };
 
@@ -55,6 +57,26 @@ const appendSessionLog = (sessionId, turnId, record) => {
   }
 };
 
+app.post('/api/client-events', (req, res) => {
+  try {
+    const { sessionId, eventType, meta } = req.body || {};
+    if (!sessionId || !eventType) return res.status(400).json({ error: 'sessionId and eventType required' });
+    const event = { sessionId, type: eventType, meta: meta || {}, at: new Date().toISOString() };
+    registerClientEvent(sessionId, event);
+    appendSessionLog(sessionId, `client-${Date.now()}`, { eventType, meta });
+    return res.json({ status: 'ok' });
+  } catch (err) {
+    console.error('Failed to store client event', err);
+    return res.status(500).json({ error: 'Failed to store client event' });
+  }
+});
+
+const registerClientEvent = (sessionId, event) => {
+  const existing = eventStore.get(sessionId) || [];
+  const next = [...existing, event].slice(-200);
+  eventStore.set(sessionId, next);
+};
+
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, history = [], sessionId: clientSessionId } = req.body;
@@ -62,6 +84,7 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'Message is required' });
     }
     const sessionId = clientSessionId || `sess-${Date.now()}`;
+    const clientEvents = eventStore.get(sessionId) || [];
 
     if (!fs.existsSync(pipelineModulePath)) {
       console.error('Pipeline build not found. Run `cd automatch-ai && npm run build`');
@@ -69,7 +92,7 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const { runPipeline } = await import(pathToFileURL(pipelineModulePath).href);
-    const result = await runPipeline(message, history, { sessionId });
+    const result = await runPipeline(message, history, { sessionId, clientEvents });
     const payload = buildPayload(result);
 
     if (!payload.reply) {
@@ -87,6 +110,8 @@ app.post('/api/chat', async (req, res) => {
       definition: payload.content?.definition || '',
       history,
       debugLogs: payload.debugLogs || [],
+      clientEvents,
+      uiRecovery: payload.uiRecovery || {},
     });
 
     res.json({ ...payload, sessionId });
