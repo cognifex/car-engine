@@ -10,7 +10,11 @@ const isCriticalLocal = (localFlags = {}) =>
   localFlags.uiBroken ||
   (localFlags.uiBroken && localFlags.issues?.some((i) => !i.toLowerCase().includes('nav')));
 
-const isDegradedLocal = (localFlags = {}) => localFlags.issues?.length > 0;
+const isDegradedLocal = (localFlags = {}) =>
+  localFlags.layoutShiftDetected ||
+  localFlags.viewportObstructed ||
+  localFlags.inputNotReachable ||
+  localFlags.keyboardOverlayBlocking;
 
 export class UIFiniteStateMachine {
   constructor(initial = UI_MODES.NORMAL) {

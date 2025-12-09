@@ -9,9 +9,9 @@ import {
   UIHealth,
 } from "../utils/types.js";
 import { SessionTraceCollector } from "../utils/sessionDump.js";
-import { findJeepModels } from "../utils/jeepCatalog.js";
 import { evaluateUiHealth } from "../policies/uiHealthPolicy.js";
 import { evaluateRouting } from "../policies/routingPolicy.js";
+import { loadSpecs } from "../utils/specs.js";
 import {
   INTENT_TYPES,
   OffersHistory,
@@ -63,16 +63,90 @@ const aggregateClientEvents = (events: ClientEvent[] = []): UIState => {
   };
 };
 
-const loadDemoEntities = () => {
-  return findJeepModels().map((entry) => ({
-    id: entry.id,
-    title: entry.model,
-    category: entry.drivetrain || entry.fuel || entry.model,
-    year: entry.year,
-    summary: entry.summary,
-    attributes: [entry.power, entry.drivetrain, entry.fuel].filter(Boolean),
-    image: entry.image,
-  }));
+const normalize = (val?: string) => (val || "").toLowerCase();
+
+const scoreSpec = (spec: ReturnType<typeof loadSpecs>[number], preferenceState?: PreferenceConstraintStateData) => {
+  const product = preferenceState?.product || { preferredCategories: [], excludedCategories: [], useCases: [] };
+  let score = 0;
+  const normBrand = normalize(spec.brand);
+  const normModel = normalize(spec.model);
+  const normBody = normalize(spec.bodyType);
+  const normDrive = normalize(spec.drivetrain);
+  const normFuel = normalize(spec.fuel);
+
+  if (spec.image) score += 0.5;
+
+  const preferred = (product.preferredCategories || []).map(normalize);
+  if (preferred.some((c) => normBrand.includes(c) || normModel.includes(c) || normBody.includes(c))) {
+    score += 3;
+  }
+
+  const useCases = (product.useCases || []).map(normalize);
+  if (useCases.some((u) => ["gelände", "offroad"].includes(u))) {
+    if (normDrive.includes("4x4") || normDrive.includes("awd") || normDrive.includes("allrad") || normBody.includes("suv") || normBody.includes("pickup")) {
+      score += 3;
+    } else {
+      score += 1;
+    }
+  }
+  if (useCases.some((u) => ["stadt", "stadtverkehr", "kurzstrecke"].includes(u))) {
+    if (normBody.includes("hatch") || normBody.includes("compact") || normBody.includes("city") || normFuel.includes("elektro")) {
+      score += 2;
+    } else {
+      score += 1;
+    }
+  }
+  if (useCases.some((u) => ["langstrecke"].includes(u))) {
+    if (normBody.includes("kombi") || normBody.includes("wagon") || normBody.includes("touring") || normBody.includes("suv")) {
+      score += 2;
+    }
+    if (normFuel.includes("diesel") || normFuel.includes("hybrid")) score += 1;
+  }
+
+  return score;
+};
+
+const loadCatalogEntities = (preferenceState?: PreferenceConstraintStateData, max = 12) => {
+  const specs = loadSpecs().filter((s) => s.brand && s.model);
+  const excluded = new Set((preferenceState?.product?.excludedCategories || []).map(normalize));
+  const step = Math.max(1, Math.floor(specs.length / 1500));
+  const sampled = specs.filter((_, idx) => idx % step === 0);
+
+  const ranked = sampled
+    .filter((spec) => {
+      const normBrand = normalize(spec.brand);
+      const normModel = normalize(spec.model);
+      const normBody = normalize(spec.bodyType);
+      return (
+        !excluded.has(normBrand) &&
+        !excluded.has(normModel) &&
+        !excluded.has(normBody) &&
+        !Array.from(excluded).some((ex) => normModel.includes(ex) || normBrand.includes(ex))
+      );
+    })
+    .map((spec) => ({
+      id: `${spec.brand}-${spec.model}-${spec.year || ""}`.replace(/\s+/g, "-").toLowerCase(),
+      title: `${spec.brand} ${spec.model}`,
+      category: spec.bodyType || spec.drivetrain || spec.fuel || "Fahrzeug",
+      year: spec.year,
+      summary: spec.bodyType
+        ? `${spec.bodyType}${spec.drivetrain ? " • " + spec.drivetrain : ""}`
+        : "Katalogmodell",
+      attributes: [
+        spec.bodyType,
+        spec.drivetrain,
+        spec.fuel,
+        spec.transmission,
+        spec.enginePowerKw ? `${spec.enginePowerKw} kW` : "",
+      ].filter(Boolean),
+      image: spec.image,
+      link: spec.url,
+      brand: spec.brand,
+      _score: scoreSpec(spec, preferenceState),
+    }))
+    .sort((a, b) => (b._score || 0) - (a._score || 0));
+
+  return ranked.slice(0, max).map(({ _score, ...rest }) => rest);
 };
 
 const buildOffersFromEntities = (entities: Record<string, unknown>[]) => {
@@ -80,18 +154,18 @@ const buildOffersFromEntities = (entities: Record<string, unknown>[]) => {
     title: String(m.title || "Ergebnis"),
     model: String(m.title || "Ergebnis"),
     price: 0,
-    dealer: "Datenquelle",
-    link: "",
+    dealer: "Katalog",
+    link: String((m as any).link || ""),
     image_url: String(m.image || ""),
     location: "",
     mileage: "",
     badge: Array.isArray(m.attributes) ? (m.attributes as string[]).filter(Boolean).join(" • ") : "",
     created_at: new Date().toISOString(),
     vin: String(m.id || ""),
-    isOffroadRelevant: false,
+    isOffroadRelevant: Boolean((m as any).category && normalize((m as any).category).includes("suv")),
     isExactMatchToSuggestion: true,
     relevanceScore: 1,
-    source: "generic-catalog",
+    source: "spec-catalog",
     fallbackReason: "",
   }));
 };
@@ -218,9 +292,11 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
   });
 
   graph.addNode("entityFetchNode", async (state: GraphState) => {
-    const entities = loadDemoEntities();
+    const entities = loadCatalogEntities(state.preferenceState as PreferenceConstraintStateData, 18);
     const preferenceState = state.preferenceState as PreferenceConstraintStateData;
-    const filteredEntities = needsEntities((state.intent as any)?.intent, preferenceState) ? applyPreferencesToItems(entities, preferenceState) : [];
+    const filteredEntities = needsEntities((state.intent as any)?.intent, preferenceState)
+      ? applyPreferencesToItems(entities, preferenceState).slice(0, 12)
+      : [];
     collector?.recordNode({ name: "entityFetch", input: { preferenceState } as Record<string, unknown>, output: { entities: filteredEntities } as Record<string, unknown> });
     return { entities: filteredEntities, ...withLog(state, { agent: "entityFetch", input: { preferenceState } as Record<string, unknown>, output: { entities: filteredEntities } as Record<string, unknown> }) };
   });

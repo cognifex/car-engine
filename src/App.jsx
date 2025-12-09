@@ -393,7 +393,7 @@ export default function AutoMatchPrototype() {
     const userMessage = inputText.trim();
     if (!userMessage || isTyping) return;
 
-    const hasCriticalUiIssue = uiState.uiBroken || uiState.layoutShiftDetected || uiState.inputNotReachable || uiState.viewportObstructed || uiState.keyboardOverlayBlocking;
+    const hasCriticalUiIssue = uiState.uiBroken || uiState.inputNotReachable || uiState.keyboardOverlayBlocking;
     if (hasCriticalUiIssue) {
       botSay('UI-Problem erkannt. Bitte UI wiederherstellen (Scroll, Reload, Tastatur schließen).');
       return;
@@ -511,17 +511,17 @@ export default function AutoMatchPrototype() {
         }`}
         aria-pressed={isActive}
       >
-        <span className={`h-10 w-10 rounded-full flex items-center justify-center ${isActive ? 'bg-blue-50' : 'bg-gray-100'}`}>{icon}</span>
+        <span className={`h-12 w-12 rounded-full flex items-center justify-center ${isActive ? 'bg-blue-50' : 'bg-gray-100'}`}>{icon}</span>
         {label}
       </button>
     );
   };
 
-  const hasCriticalUiIssue = uiState.inputNotReachable || uiState.keyboardOverlayBlocking;
-  const isDegradedUi = uiMode === UI_MODES.DEGRADED_VISUALS;
+  const hasCriticalUiIssue = uiState.uiBroken || uiState.inputNotReachable || uiState.keyboardOverlayBlocking;
+  const isDegradedUi = uiMode === UI_MODES.DEGRADED_VISUALS || uiHealth.degraded_mode;
   const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
-  const renderTextOnly = uiRecovery.renderTextOnly || isDegradedUi;
-  const showUiBanner = uiRecovery.showBanner || isDegradedUi || hasCriticalUiIssue;
+  const renderTextOnly = uiRecovery.renderTextOnly || Boolean(uiHealth.render_text_only);
+  const showUiBanner = uiRecovery.showBanner || Boolean(uiHealth.show_banner) || isDegradedUi || hasCriticalUiIssue;
 
   const handleUiRecovery = (action) => {
     if (action === 'reload') {

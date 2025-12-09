@@ -8,8 +8,8 @@ export const DEFAULT_UI_FLAGS = {
   lastCheck: null,
 };
 
-const LAYOUT_SHIFT_THRESHOLD = 40; // px
-const KEYBOARD_OVERLAY_DELTA = 150; // px difference between viewport and visualViewport
+const LAYOUT_SHIFT_THRESHOLD = 120; // px — tolerate typical mobile resizes/keyboard shifts
+const KEYBOARD_OVERLAY_DELTA = 220; // px difference between viewport and visualViewport
 const MIN_TOUCH_TARGET = 44; // px touch guidelines
 const ZOOM_DRIFT_THRESHOLD = 0.05; // tolerate minor zoom differences
 
