@@ -81,5 +81,5 @@ jobs:
         with:
           workflow: deploy-recovery.yml
           token: ${{ secrets.GITHUB_TOKEN }}
-          inputs:
+          inputs: |
             failed_run: ${{ github.run_id }}
