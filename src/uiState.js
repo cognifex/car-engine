@@ -27,17 +27,23 @@ export function evaluateUiState(current, previous = {}) {
     focusable = {},
     safeAreaInsets = {},
     viewportScale,
+    navVisible: navVisibleFromSnapshot,
   } = current;
   const issues = [];
+  const navVisible = typeof navVisibleFromSnapshot === 'boolean'
+    ? navVisibleFromSnapshot
+    : Boolean(elements.nav && elements.nav.width > 0 && elements.nav.height > 0);
+  const navExpected = (viewportWidth || 0) < 768; // nav only rendered on small screens
 
-  const missing = ['main', 'input', 'nav', 'chat'].filter((key) => !elements[key]);
+  const requiredElements = navExpected ? ['main', 'input', 'nav', 'chat'] : ['main', 'input', 'chat'];
+  const missing = requiredElements.filter((key) => !elements[key]);
   if (missing.length > 0) {
     base.uiBroken = true;
     issues.push(`Fehlende Kern-Elemente: ${missing.join(', ')}`);
   }
 
   const invisible = Object.entries(visibility)
-    .filter(([key, val]) => val === false && ['main', 'input', 'nav', 'chat'].includes(key))
+    .filter(([key, val]) => val === false && requiredElements.includes(key))
     .map(([key]) => key);
   if (invisible.length > 0) {
     base.uiBroken = true;
@@ -59,7 +65,7 @@ export function evaluateUiState(current, previous = {}) {
     }
   }
 
-  if (elements.nav && visualViewportHeight) {
+  if (navExpected && navVisible && elements.nav && visualViewportHeight) {
     const safeBottom = Math.max(0, safeAreaInsets.bottom || 0);
     if (elements.nav.bottom > visualViewportHeight - safeBottom - 4) {
       base.viewportObstructed = true;
@@ -94,7 +100,7 @@ export function evaluateUiState(current, previous = {}) {
     }
   }
 
-  if (current.touchTargets?.length) {
+  if (navExpected && navVisible && current.touchTargets?.length) {
     const tinyTarget = current.touchTargets.find(
       (t) => t.height < MIN_TOUCH_TARGET || t.width < MIN_TOUCH_TARGET
     );
@@ -150,6 +156,7 @@ export function buildSnapshot({
   focusable = {},
   safeAreaInsets = {},
   viewportScale = 1,
+  navVisible = false,
 }) {
   return {
     elements: {
@@ -171,5 +178,6 @@ export function buildSnapshot({
       navY: navRect?.top,
       chatY: chatRect?.top,
     },
+    navVisible,
   };
 }

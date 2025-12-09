@@ -246,18 +246,26 @@ export default function AutoMatchPrototype() {
     const viewportWidth = window.innerWidth;
     const visualViewportHeight = window.visualViewport?.height || viewportHeight;
     const viewportScale = window.visualViewport?.scale || 1;
+    const navEl = navRef.current;
     const mainRect = rootRef.current?.getBoundingClientRect();
     const inputRect = inputRef.current?.getBoundingClientRect();
-    const navRect = navRef.current?.getBoundingClientRect();
+    const navRect = navEl?.getBoundingClientRect();
     const chatRect = chatScrollRef.current?.getBoundingClientRect();
+    const navVisible = Boolean(
+      navRect &&
+      navRect.width > 0 &&
+      navRect.height > 0 &&
+      window.getComputedStyle(navEl || document.body).display !== 'none'
+    );
+    const inputGuardDisabled = inputRef.current?.dataset?.guardDisabled === 'true';
     const visibility = {
       main: Boolean(mainRect && mainRect.width > 0 && mainRect.height > 0 && window.getComputedStyle(rootRef.current || document.body).visibility !== 'hidden'),
       input: Boolean(inputRect && inputRect.width > 0 && inputRect.height > 0 && window.getComputedStyle(inputRef.current || document.body).visibility !== 'hidden'),
-      nav: Boolean(navRect && navRect.width > 0 && navRect.height > 0 && window.getComputedStyle(navRef.current || document.body).visibility !== 'hidden'),
+      nav: navVisible,
       chat: Boolean(chatRect && chatRect.width > 0 && chatRect.height > 0 && window.getComputedStyle(chatScrollRef.current || document.body).visibility !== 'hidden'),
     };
     const focusable = {
-      input: Boolean(inputRef.current && !inputRef.current.disabled && inputRef.current.tabIndex !== -1),
+      input: Boolean(inputRef.current && (!inputRef.current.disabled || inputGuardDisabled) && inputRef.current.tabIndex !== -1),
     };
     const safeAreaInsets = (() => {
       const vv = window.visualViewport;
@@ -268,10 +276,12 @@ export default function AutoMatchPrototype() {
       const bottom = Math.max(0, window.innerHeight - (vv.height + top));
       return { top, left, right, bottom };
     })();
-    const touchTargets = Array.from(navRef.current?.querySelectorAll('button') || []).map((btn) => {
-      const rect = btn.getBoundingClientRect();
-      return { name: btn.innerText || 'nav', width: rect.width, height: rect.height };
-    });
+    const touchTargets = navVisible
+      ? Array.from(navEl?.querySelectorAll('button') || []).map((btn) => {
+          const rect = btn.getBoundingClientRect();
+          return { name: btn.innerText || 'nav', width: rect.width, height: rect.height };
+        })
+      : [];
 
     return buildSnapshot({
       mainRect,
@@ -286,6 +296,7 @@ export default function AutoMatchPrototype() {
       safeAreaInsets,
       viewportScale,
       touchTargets,
+      navVisible,
     });
   }, []);
 
@@ -621,6 +632,7 @@ export default function AutoMatchPrototype() {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={handleKeyPress}
+                data-guard-disabled={hasCriticalUiIssue ? 'true' : 'false'}
                 disabled={hasCriticalUiIssue}
                 aria-disabled={hasCriticalUiIssue}
               />
