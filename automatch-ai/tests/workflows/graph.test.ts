@@ -41,12 +41,13 @@ describe("graph workflow", () => {
     expect(second.offers?.length || 0).toBe(0);
   });
 
-  it("adds frustration-aware response hints", async () => {
+  it("adds frustration-aware evaluation and recovery hints", async () => {
     const graph = buildGraph();
     const result = await graph.invoke(baseState("das funktioniert nicht, bitte im textmodus"));
 
     expect(result.intent?.frustration).toBe(true);
-    expect(result.response?.reply.toLowerCase()).toContain("sorry");
+    expect(result.evaluation?.severity).toBe("warn");
+    expect(result.ui_health?.render_text_only).toBeTypeOf("boolean");
   });
 
   it("stays in onboarding/plan mode for meta communication without structured request", async () => {

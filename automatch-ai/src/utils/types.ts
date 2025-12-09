@@ -11,6 +11,20 @@ export type AgentLogEntry = {
   output: Record<string, unknown>;
 };
 
+export type PlanStep = {
+  id: string;
+  description: string;
+  agent: "planner" | "intent" | "profile" | "tool" | "evaluator" | "front";
+  required?: boolean;
+};
+
+export type TurnEvaluation = {
+  severity: "info" | "warn" | "error";
+  notes: string[];
+  blockers?: string[];
+  followUp?: string;
+};
+
 export const profilingSchema = z.object({
   knowledge_level: z.enum(["low", "medium", "high"]),
   confidence: z.enum(["low", "medium", "high"]),
@@ -240,4 +254,6 @@ export interface ConversationState extends Record<string, unknown> {
   preferenceState?: Record<string, unknown>;
   offersHistory?: Record<string, unknown>[];
   lastReply?: string;
+  plan?: PlanStep[];
+  evaluation?: TurnEvaluation;
 }

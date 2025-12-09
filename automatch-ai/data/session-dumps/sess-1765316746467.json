@@ -1,0 +1,404 @@
+{
+  "metadata": {
+    "sessionId": "sess-1765316746467",
+    "startedAt": "2025-12-09T21:45:46.467Z",
+    "completedAt": "2025-12-09T21:45:46.516Z",
+    "modelId": "graph-catalog",
+    "redacted": false
+  },
+  "conversation": [
+    {
+      "id": "turn-1-user",
+      "role": "user",
+      "text": "zeige optionen",
+      "timestamp": "2025-12-09T21:45:46.468Z"
+    },
+    {
+      "id": "turn-1-assistant",
+      "role": "assistant",
+      "text": "Noch nichts Passendes. Lass uns die Kriterien kurz schärfen. Plan: Zwei schnelle Fragen (Nutzung, Budget) klären, dann Treffer zeigen. Sag mir gern, wenn ich etwas anders priorisieren soll.",
+      "timestamp": "2025-12-09T21:45:46.516Z"
+    },
+    {
+      "id": "turn-1-followup",
+      "role": "assistant",
+      "text": "Gib mir bitte kurz Nutzung (z. B. Stadt/Langstrecke) und Budget, dann zeige ich sofort passende Beispiele.",
+      "timestamp": "2025-12-09T21:45:46.516Z"
+    }
+  ],
+  "turns": [
+    {
+      "turnId": "turn-1",
+      "startedAt": "2025-12-09T21:45:46.468Z",
+      "endedAt": "2025-12-09T21:45:46.516Z",
+      "userMessage": "zeige optionen",
+      "reply": "Noch nichts Passendes. Lass uns die Kriterien kurz schärfen. Plan: Zwei schnelle Fragen (Nutzung, Budget) klären, dann Treffer zeigen. Sag mir gern, wenn ich etwas anders priorisieren soll.",
+      "followUp": "Gib mir bitte kurz Nutzung (z. B. Stadt/Langstrecke) und Budget, dann zeige ich sofort passende Beispiele.",
+      "nodes": [
+        {
+          "name": "memoryBootstrap",
+          "input": {
+            "history": []
+          },
+          "output": {
+            "shortTerm": {
+              "messages": [],
+              "maxItems": 12,
+              "lastUpdated": "2025-12-09T21:45:46.467Z"
+            },
+            "working": {
+              "product": {
+                "preferredCategories": [],
+                "excludedCategories": [],
+                "preferredAttributes": [],
+                "excludedAttributes": [],
+                "useCases": []
+              },
+              "conversation": {},
+              "style": {},
+              "filters": {}
+            },
+            "longTerm": {
+              "reflections": [],
+              "personaAdjustments": [],
+              "frustrationCount": 0,
+              "lastPlan": "",
+              "lastUiHealthNote": ""
+            }
+          },
+          "startedAt": "2025-12-09T21:45:46.473Z",
+          "endedAt": "2025-12-09T21:45:46.473Z",
+          "durationMs": 0
+        },
+        {
+          "name": "clientEvent",
+          "input": {
+            "events": []
+          },
+          "output": {
+            "imageFailures": 0,
+            "failedModels": [],
+            "networkChanged": false,
+            "resultsNotVisible": false
+          },
+          "startedAt": "2025-12-09T21:45:46.476Z",
+          "endedAt": "2025-12-09T21:45:46.476Z",
+          "durationMs": 0
+        },
+        {
+          "name": "intentParser",
+          "input": {
+            "message": "zeige optionen",
+            "uiState": {
+              "imageFailures": 0,
+              "failedModels": [],
+              "networkChanged": false,
+              "resultsNotVisible": false
+            }
+          },
+          "output": {
+            "intent": "preference_change",
+            "frustration": false,
+            "preferenceSignals": {
+              "product": {
+                "preferredCategories": [
+                  "optionen"
+                ],
+                "excludedCategories": [],
+                "preferredAttributes": [],
+                "excludedAttributes": [],
+                "useCases": []
+              },
+              "conversation": {},
+              "style": {}
+            },
+            "confidence": 0.78
+          },
+          "startedAt": "2025-12-09T21:45:46.480Z",
+          "endedAt": "2025-12-09T21:45:46.480Z",
+          "durationMs": 0
+        },
+        {
+          "name": "planner",
+          "input": {
+            "intent": {
+              "intent": "preference_change",
+              "frustration": false,
+              "preferenceSignals": {
+                "product": {
+                  "preferredCategories": [
+                    "optionen"
+                  ],
+                  "excludedCategories": [],
+                  "preferredAttributes": [],
+                  "excludedAttributes": [],
+                  "useCases": []
+                },
+                "conversation": {},
+                "style": {}
+              },
+              "confidence": 0.78
+            },
+            "preferenceState": {
+              "product": {
+                "preferredCategories": [],
+                "excludedCategories": [],
+                "preferredAttributes": [],
+                "excludedAttributes": [],
+                "useCases": []
+              },
+              "conversation": {},
+              "style": {},
+              "filters": {}
+            }
+          },
+          "output": {
+            "plan": [
+              {
+                "id": "intent-parse",
+                "description": "Verstehe Absicht und Stimmung",
+                "agent": "intent",
+                "required": true
+              },
+              {
+                "id": "planner",
+                "description": "Bestimme die nächsten Schritte und UX-Modus",
+                "agent": "planner",
+                "required": true
+              },
+              {
+                "id": "profile",
+                "description": "Sammle Nutzung, Budget und Stilpräferenzen",
+                "agent": "profile",
+                "required": true
+              },
+              {
+                "id": "evaluator",
+                "description": "Qualität/UX/Frust prüfen",
+                "agent": "evaluator",
+                "required": true
+              },
+              {
+                "id": "front",
+                "description": "Antwort im freundlichen Ton liefern",
+                "agent": "front",
+                "required": true
+              }
+            ],
+            "allowOffers": false,
+            "needsClarification": true,
+            "structured": false,
+            "planHint": "Plan: Zwei schnelle Fragen (Nutzung, Budget) klären, dann Treffer zeigen."
+          },
+          "startedAt": "2025-12-09T21:45:46.483Z",
+          "endedAt": "2025-12-09T21:45:46.483Z",
+          "durationMs": 0
+        },
+        {
+          "name": "execution",
+          "input": {
+            "intent": {
+              "intent": "preference_change",
+              "frustration": false,
+              "preferenceSignals": {
+                "product": {
+                  "preferredCategories": [
+                    "optionen"
+                  ],
+                  "excludedCategories": [],
+                  "preferredAttributes": [],
+                  "excludedAttributes": [],
+                  "useCases": []
+                },
+                "conversation": {},
+                "style": {}
+              },
+              "confidence": 0.78
+            },
+            "preferenceState": {
+              "product": {
+                "preferredCategories": [
+                  "optionen"
+                ],
+                "excludedCategories": [],
+                "preferredAttributes": [],
+                "excludedAttributes": [],
+                "useCases": []
+              },
+              "conversation": {},
+              "style": {
+                "vibe": []
+              },
+              "filters": {}
+            }
+          },
+          "output": {
+            "offers": 0,
+            "content_state": {
+              "has_results": false,
+              "num_results": 0,
+              "clarification_required": true,
+              "no_relevant_results": true,
+              "fallback_used": true,
+              "strict_matching": false,
+              "notes": [],
+              "repeat_with_changed_constraints": false
+            }
+          },
+          "startedAt": "2025-12-09T21:45:46.502Z",
+          "endedAt": "2025-12-09T21:45:46.502Z",
+          "durationMs": 0
+        },
+        {
+          "name": "uiHealth",
+          "input": {
+            "uiState": {
+              "imageFailures": 0,
+              "failedModels": [],
+              "networkChanged": false,
+              "resultsNotVisible": false
+            },
+            "events": []
+          },
+          "output": {
+            "degraded_mode": false,
+            "render_text_only": false,
+            "show_banner": false,
+            "severity": "info",
+            "signals": {
+              "imageFailures": 0,
+              "networkChanged": false,
+              "resultsNotVisible": false,
+              "agentFailures": 0
+            }
+          },
+          "startedAt": "2025-12-09T21:45:46.505Z",
+          "endedAt": "2025-12-09T21:45:46.505Z",
+          "durationMs": 0
+        },
+        {
+          "name": "evaluation",
+          "input": {
+            "content_state": {
+              "has_results": false,
+              "num_results": 0,
+              "clarification_required": true,
+              "no_relevant_results": true,
+              "fallback_used": true,
+              "strict_matching": false,
+              "notes": [],
+              "repeat_with_changed_constraints": false
+            },
+            "uiHealth": {
+              "degraded_mode": false,
+              "render_text_only": false,
+              "show_banner": false,
+              "severity": "info",
+              "signals": {
+                "imageFailures": 0,
+                "networkChanged": false,
+                "resultsNotVisible": false,
+                "agentFailures": 0
+              }
+            },
+            "frustration": false
+          },
+          "output": {
+            "severity": "warn",
+            "notes": [
+              "Keine passenden Ergebnisse – fokussiere Kriterien"
+            ],
+            "blockers": [],
+            "followUp": "Gib mir bitte kurz Nutzung (z. B. Stadt/Langstrecke) und Budget, dann zeige ich sofort passende Beispiele."
+          },
+          "startedAt": "2025-12-09T21:45:46.508Z",
+          "endedAt": "2025-12-09T21:45:46.508Z",
+          "durationMs": 0
+        },
+        {
+          "name": "response",
+          "input": {
+            "content_state": {
+              "has_results": false,
+              "num_results": 0,
+              "clarification_required": true,
+              "no_relevant_results": true,
+              "fallback_used": true,
+              "strict_matching": false,
+              "notes": [],
+              "repeat_with_changed_constraints": false
+            },
+            "uiHealth": {
+              "degraded_mode": false,
+              "render_text_only": false,
+              "show_banner": false,
+              "severity": "info",
+              "signals": {
+                "imageFailures": 0,
+                "networkChanged": false,
+                "resultsNotVisible": false,
+                "agentFailures": 0
+              }
+            }
+          },
+          "output": {
+            "reply": "Noch nichts Passendes. Lass uns die Kriterien kurz schärfen. Plan: Zwei schnelle Fragen (Nutzung, Budget) klären, dann Treffer zeigen. Sag mir gern, wenn ich etwas anders priorisieren soll.",
+            "followUp": "Gib mir bitte kurz Nutzung (z. B. Stadt/Langstrecke) und Budget, dann zeige ich sofort passende Beispiele."
+          },
+          "startedAt": "2025-12-09T21:45:46.510Z",
+          "endedAt": "2025-12-09T21:45:46.510Z",
+          "durationMs": 0
+        }
+      ],
+      "intent": {
+        "intent": "preference_change",
+        "frustration": false,
+        "preferenceSignals": {
+          "product": {
+            "preferredCategories": [
+              "optionen"
+            ],
+            "excludedCategories": [],
+            "preferredAttributes": [],
+            "excludedAttributes": [],
+            "useCases": []
+          },
+          "conversation": {},
+          "style": {}
+        },
+        "confidence": 0.78
+      },
+      "routing": {
+        "includeKnowledge": true,
+        "includeVisuals": false,
+        "includeMatching": false,
+        "includeOffers": false,
+        "strictOffers": false,
+        "retryMatching": true
+      },
+      "offers": [],
+      "offersHistory": [],
+      "content": {
+        "offers": [],
+        "visuals": [],
+        "definition": "Generische Übersicht"
+      },
+      "uiPresentedOffers": [],
+      "semanticallyFocusedModels": [],
+      "clientEvents": [],
+      "uiState": {
+        "imageFailures": 0,
+        "failedModels": [],
+        "networkChanged": false,
+        "resultsNotVisible": false
+      },
+      "uiRecovery": {
+        "renderTextOnly": false,
+        "degradedMode": false,
+        "showBanner": false
+      }
+    }
+  ],
+  "errors": [],
+  "clientEvents": []
+}

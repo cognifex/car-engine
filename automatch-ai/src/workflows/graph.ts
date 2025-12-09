@@ -2,11 +2,14 @@ import { StateGraph, START, END } from "@langchain/langgraph";
 import {
   AgentLogEntry,
   ClientEvent,
+  ConversationMessage,
   ConversationState,
   UIRecoveryInstruction,
   UIState,
   ContentState,
   UIHealth,
+  PlanStep,
+  TurnEvaluation,
 } from "../utils/types.js";
 import { SessionTraceCollector } from "../utils/sessionDump.js";
 import { evaluateUiHealth } from "../policies/uiHealthPolicy.js";
@@ -24,6 +27,9 @@ import {
   hasStructuredProductRequirement,
 } from "../utils/preferences.js";
 import { loadReflectionSummary, recordReflection } from "../utils/reflection.js";
+import { friendlyPersona, applyPersonaTone } from "../ux/persona.js";
+import { detectFrustrationSignals } from "../ux/frustration.js";
+import { MemoryManager, mergeMemory, SessionMemorySnapshot, ShortTermMemoryWindow } from "../memory/memory.js";
 
 export type GraphState = ConversationState &
   Record<string, unknown> & {
@@ -32,7 +38,18 @@ export type GraphState = ConversationState &
     conversationPlan?: string;
     gatingReason?: string;
     lastReply?: string;
+    memoryManager?: MemoryManager;
+    memorySnapshot?: SessionMemorySnapshot;
+    planMeta?: PlannerDecision;
   };
+
+type PlannerDecision = {
+  plan: PlanStep[];
+  allowOffers: boolean;
+  needsClarification: boolean;
+  structured: boolean;
+  planHint?: string;
+};
 
 const withLog = (state: GraphState, entry: AgentLogEntry) => ({
   debugLogs: [...(state.debugLogs || []), entry],
@@ -43,7 +60,7 @@ const deriveIntent = (state: GraphState) => {
   const parsed = detectIntent(msg);
   return {
     intent: parsed.intent,
-    frustration: Boolean(parsed.frustration),
+    frustration: parsed.frustration,
     preferenceSignals: parsed.preferenceSignals,
     confidence: parsed.confidence,
   } as any;
@@ -206,34 +223,135 @@ const buildPlanHint = ({
     : "Plan: Gespräch fokussieren, dann Ergebnisse liefern.";
 };
 
-const buildResponseText = (
+const buildPlannerDecision = (state: GraphState): PlannerDecision => {
+  const intentType = (state.intent as any)?.intent;
+  const preferenceState = state.preferenceState as PreferenceConstraintStateData;
+  const structured = hasStructuredProductRequirement(preferenceState);
+  const searchIntent = isSearchIntent(intentType);
+  const metaIntent =
+    intentType === INTENT_TYPES.META_COMMUNICATION ||
+    intentType === INTENT_TYPES.KNOWLEDGE_SIGNAL ||
+    intentType === INTENT_TYPES.MODE_REQUEST ||
+    intentType === INTENT_TYPES.NEEDS_CLARIFICATION ||
+    intentType === INTENT_TYPES.AFFIRMATION;
+  const allowOffers = searchIntent && structured && !metaIntent;
+  const needsClarification = !structured || intentType === INTENT_TYPES.NEEDS_CLARIFICATION;
+
+  const plan: PlanStep[] = [
+    { id: "intent-parse", description: "Verstehe Absicht und Stimmung", agent: "intent", required: true },
+    { id: "planner", description: "Bestimme die nächsten Schritte und UX-Modus", agent: "planner", required: true },
+  ];
+  if (needsClarification) {
+    plan.push({ id: "profile", description: "Sammle Nutzung, Budget und Stilpräferenzen", agent: "profile", required: true });
+  }
+  if (allowOffers) {
+    plan.push({ id: "tooling", description: "Generiere/Filtern Angebote und Visuals", agent: "tool", required: true });
+  }
+  plan.push({ id: "evaluator", description: "Qualität/UX/Frust prüfen", agent: "evaluator", required: true });
+  plan.push({ id: "front", description: "Antwort im freundlichen Ton liefern", agent: "front", required: true });
+
+  const planHint = buildPlanHint({ intentType, allowOffers, structured, preferenceState });
+
+  return { plan, allowOffers, needsClarification, structured, planHint };
+};
+
+const defaultContentState = (): ContentState & { repeat_with_changed_constraints?: boolean } => ({
+  has_results: false,
+  num_results: 0,
+  clarification_required: false,
+  no_relevant_results: true,
+  fallback_used: false,
+  strict_matching: false,
+  notes: [],
+  repeat_with_changed_constraints: false,
+});
+
+const summarizeEvaluation = (
   content_state: ContentState & { repeat_with_changed_constraints?: boolean },
   uiHealth: UIHealth,
   frustration: boolean,
-  planHint?: string,
-  lastUserMessage?: string,
-) => {
-  const lines: string[] = [];
-  if (frustration) {
-    lines.push("Sorry für die Reibung – ich halte es kurz und stabil.");
-  }
+): TurnEvaluation => {
+  const notes: string[] = [];
+  const blockers: string[] = [];
+
   if (content_state.repeat_with_changed_constraints) {
-    lines.push("Die neuen Filter liefern dieselben Ergebnisse. Magst du die Kriterien anpassen?");
-  } else if (!content_state.has_results || content_state.no_relevant_results) {
-    lines.push("Noch keine passenden Ergebnisse. Lass uns die Kriterien kurz schärfen.");
-  } else {
-    lines.push(`Ich habe ${content_state.num_results} Ergebnisse vorbereitet.`);
+    notes.push("Identische Ergebnisse trotz neuer Filter");
   }
-  if (planHint) {
-    lines.push(planHint);
-  }
-  if (content_state.clarification_required) {
-    lines.push("Wenn du willst, stelle ich gezielt 2-3 Fragen und gehe dann in die Liste.");
+  if (!content_state.has_results || content_state.no_relevant_results) {
+    notes.push("Keine passenden Ergebnisse – fokussiere Kriterien");
   }
   if (uiHealth.render_text_only) {
-    lines.push("Visuelle Elemente sind reduziert, bis die UI stabil ist.");
+    notes.push("UI instabil, Text-Only aktiviert");
   }
-  return lines.join(" ").trim();
+  if (uiHealth.error) {
+    blockers.push(uiHealth.error);
+  }
+  if (frustration) {
+    notes.push("Frustration erkannt");
+  }
+
+  const severity: TurnEvaluation["severity"] =
+    blockers.length > 0 ? "error" : content_state.fallback_used || uiHealth.degraded_mode || frustration ? "warn" : "info";
+
+  const followUp = content_state.clarification_required
+    ? "Gib mir bitte kurz Nutzung (z. B. Stadt/Langstrecke) und Budget, dann zeige ich sofort passende Beispiele."
+    : undefined;
+
+  return { severity, notes, blockers, followUp };
+};
+
+const composeReply = ({
+  content_state,
+  uiHealth,
+  planHint,
+  frustration,
+  evaluation,
+  lastReply,
+}: {
+  content_state: ContentState & { repeat_with_changed_constraints?: boolean };
+  uiHealth: UIHealth;
+  planHint?: string;
+  frustration: boolean;
+  evaluation?: TurnEvaluation;
+  lastReply?: string;
+}) => {
+  let base = "";
+  if (content_state.repeat_with_changed_constraints) {
+    base = "Die neuen Filter liefern dieselben Ergebnisse. Magst du die Kriterien anpassen?";
+  } else if (!content_state.has_results || content_state.no_relevant_results) {
+    base = "Noch nichts Passendes. Lass uns die Kriterien kurz schärfen.";
+  } else {
+    base = `Ich habe ${content_state.num_results} Optionen vorbereitet.`;
+  }
+
+  if (evaluation?.severity === "error") {
+    base = "Ich pausiere kurz, bis die UI stabil ist oder ich mehr Signale habe.";
+  }
+
+  const reply = applyPersonaTone(base, friendlyPersona, { frustration, planHint });
+  const followUp = uiHealth.render_text_only
+    ? "Visuelle Elemente reduziere ich, bis die UI stabil ist."
+    : evaluation?.followUp || "";
+
+  if (lastReply && reply === lastReply) {
+    return {
+      reply: `${reply} Lass uns diesmal einen anderen Ansatz wählen: zwei gezielte Fragen oder alternative Modelle?`,
+      followUp,
+    };
+  }
+
+  return { reply, followUp };
+};
+
+const updateOffersHistory = (
+  offers: any[],
+  intent: { intent?: string },
+  preferenceState: PreferenceConstraintStateData,
+  history?: OffersHistory,
+) => {
+  const tracker = history || new OffersHistory();
+  tracker.record({ items: offers, intentType: intent.intent, preferenceState });
+  return tracker.snapshot();
 };
 
 export const buildGraph = (collector?: SessionTraceCollector) => {
@@ -257,7 +375,23 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       conversationPlan: null,
       gatingReason: null,
       debugLogs: null,
+      plan: null,
+      evaluation: null,
+      memorySnapshot: null,
+      memoryManager: null,
+      planMeta: null,
     },
+  });
+
+  graph.addNode("memoryBootstrapNode", async (state: GraphState) => {
+    const merged = mergeMemory(state.memorySnapshot as SessionMemorySnapshot | undefined, state.history as ConversationMessage[]);
+    collector?.recordNode({ name: "memoryBootstrap", input: { history: state.history } as Record<string, unknown>, output: merged as unknown as Record<string, unknown> });
+    return {
+      memorySnapshot: merged,
+      preferenceState: merged.working,
+      history: state.history && (state.history as ConversationMessage[]).length ? state.history : merged.shortTerm.messages,
+      ...withLog(state, { agent: "memoryBootstrap", input: { history: state.history || [] }, output: { working: merged.working } }),
+    };
   });
 
   graph.addNode("clientEventNode", async (state: GraphState) => {
@@ -273,94 +407,97 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
     return { intent, ...withLog(state, { agent: "intentParser", input: { message: state.userMessage, uiState: state.uiState } as Record<string, unknown>, output: intent as Record<string, unknown> }) };
   });
 
-  graph.addNode("preferenceStateNode", async (state: GraphState) => {
-    const manager = new PreferenceConstraintState(state.preferenceState);
-    const updated = manager.updateFromIntent(state.intent as any);
-    collector?.recordNode({
-      name: "preferenceState",
-      input: { intent: state.intent } as Record<string, unknown>,
-      output: { preferenceState: updated } as Record<string, unknown>,
-    });
+  graph.addNode("plannerNode", async (state: GraphState) => {
+    const prefPreview = new PreferenceConstraintState(state.preferenceState).updateFromIntent(state.intent as any);
+    const decision = buildPlannerDecision({ ...state, preferenceState: prefPreview } as GraphState);
+    collector?.recordNode({ name: "planner", input: { intent: state.intent, preferenceState: prefPreview } as Record<string, unknown>, output: decision as unknown as Record<string, unknown> });
     return {
-      preferenceState: manager.getState(),
-      ...withLog(state, {
-        agent: "preferenceState",
-        input: { intent: state.intent } as Record<string, unknown>,
-        output: { preferenceState: updated } as Record<string, unknown>,
-      }),
+      plan: decision.plan,
+      planMeta: decision,
+      conversationPlan: decision.planHint,
+      preferenceState: prefPreview,
+      ...withLog(state, { agent: "planner", input: { intent: state.intent } as Record<string, unknown>, output: { ...decision, preferenceState: prefPreview } as unknown as Record<string, unknown> }),
     };
   });
 
-  graph.addNode("entityFetchNode", async (state: GraphState) => {
-    const entities = loadCatalogEntities(state.preferenceState as PreferenceConstraintStateData, 18);
-    const preferenceState = state.preferenceState as PreferenceConstraintStateData;
-    const filteredEntities = needsEntities((state.intent as any)?.intent, preferenceState)
-      ? applyPreferencesToItems(entities, preferenceState).slice(0, 12)
-      : [];
-    collector?.recordNode({ name: "entityFetch", input: { preferenceState } as Record<string, unknown>, output: { entities: filteredEntities } as Record<string, unknown> });
-    return { entities: filteredEntities, ...withLog(state, { agent: "entityFetch", input: { preferenceState } as Record<string, unknown>, output: { entities: filteredEntities } as Record<string, unknown> }) };
-  });
+  graph.addNode("executionNode", async (state: GraphState) => {
+    const prefManager = new PreferenceConstraintState(state.preferenceState);
+    const updatedPreferenceState = prefManager.updateFromIntent(state.intent as any);
+    const planMeta = state.planMeta || buildPlannerDecision({ ...state, preferenceState: updatedPreferenceState } as GraphState);
 
-  graph.addNode("routingNode", async (state: GraphState) => {
-    const intentType = (state.intent as any)?.intent;
-    const preferenceState = state.preferenceState as PreferenceConstraintStateData;
-    const structured = hasStructuredProductRequirement(preferenceState);
-    const searchIntent = isSearchIntent(intentType);
-    const metaIntent =
-      intentType === INTENT_TYPES.META_COMMUNICATION ||
-      intentType === INTENT_TYPES.KNOWLEDGE_SIGNAL ||
-      intentType === INTENT_TYPES.MODE_REQUEST ||
-      intentType === INTENT_TYPES.NEEDS_CLARIFICATION ||
-      intentType === INTENT_TYPES.AFFIRMATION;
-    const allowOffers = searchIntent && structured && !metaIntent;
-    const needsClarification = !allowOffers;
-
-    const entityList = Array.isArray(state.entities) ? (state.entities as Record<string, unknown>[]) : [];
-    const offers = allowOffers ? buildOffersFromEntities(entityList) : [];
     const history = new OffersHistory(state.offersHistory as any);
-    const repeatWithChangedConstraints = history.detectRepeatWithChanges(offers, state.intent as any, (state.preferenceState || {}) as PreferenceConstraintStateData);
-    const decision = evaluateRouting(
+    const entities = needsEntities((state.intent as any)?.intent, updatedPreferenceState)
+      ? applyPreferencesToItems(loadCatalogEntities(updatedPreferenceState, 18), updatedPreferenceState).slice(0, 12)
+      : [];
+    let offersMeta: Record<string, unknown> = {
+      source: "catalog",
+      entities_considered: entities.length,
+      appliedPreferences: updatedPreferenceState?.product,
+    };
+    let offers = planMeta.allowOffers ? buildOffersFromEntities(entities) : [];
+
+    if (planMeta.allowOffers && offers.length === 0) {
+      const fallbackEntities = loadCatalogEntities(undefined, 8);
+      offers = buildOffersFromEntities(fallbackEntities);
+      offersMeta = { ...offersMeta, fallbackUsed: true, source: "catalog-fallback", entities_considered: fallbackEntities.length };
+    }
+    const negativeIntent = [(state.intent as any)?.intent].some((i) => [INTENT_TYPES.FEEDBACK_NEGATIVE, INTENT_TYPES.FRUSTRATION].includes(i as any));
+    const repeatWithChangedConstraints =
+      negativeIntent && Boolean(history.last())
+        ? true
+        : history.detectRepeatWithChanges(offers, state.intent as any, updatedPreferenceState);
+    if (repeatWithChangedConstraints) {
+      offers = [];
+    }
+
+    const routingDecision = evaluateRouting(
       {
         intent: state.intent as any,
         offerCount: offers.length,
-        needsClarification,
+        needsClarification: planMeta.needsClarification,
         repeatWithChangedConstraints,
-        allowOffers,
+        allowOffers: planMeta.allowOffers,
       },
       undefined,
     );
-    if (!allowOffers) {
-      recordReflection({
-        reason: metaIntent ? "user_requested_guidance" : structured ? "missing_search_intent" : "missing_requirements",
-        intent: intentType,
-        gatingReason: metaIntent ? "guidance" : structured ? "intent" : "requirements",
-      });
-    }
-    if (repeatWithChangedConstraints) {
-      recordReflection({ reason: "repeat_with_changed_constraints", intent: intentType, gatingReason: "repeat" });
-    }
-    const filteredOffers = repeatWithChangedConstraints ? [] : offers;
-    const planHint = buildPlanHint({ intentType, allowOffers, structured, preferenceState });
-    const content_state: ContentState = {
-      ...decision.content_state,
-      has_results: filteredOffers.length > 0,
-      num_results: filteredOffers.length,
+
+    const content_state: ContentState & { repeat_with_changed_constraints?: boolean } = {
+      ...routingDecision.content_state,
+      has_results: offers.length > 0,
+      num_results: offers.length,
       repeat_with_changed_constraints: repeatWithChangedConstraints,
-      fallback_used: decision.content_state.fallback_used || repeatWithChangedConstraints || filteredOffers.length === 0,
-      no_relevant_results: decision.content_state.no_relevant_results || filteredOffers.length === 0,
-    } as any;
-    if (repeatWithChangedConstraints && content_state.notes) {
-      content_state.notes.push("Detected identical offers after intent/state change.");
-    }
-    collector?.recordNode({ name: "routing", input: { intent: state.intent, offers: offers.length } as Record<string, unknown>, output: decision as unknown as Record<string, unknown> });
+      fallback_used: routingDecision.content_state.fallback_used || repeatWithChangedConstraints || offers.length === 0,
+      no_relevant_results: routingDecision.content_state.no_relevant_results || offers.length === 0,
+    };
+
+    offersMeta = {
+      ...offersMeta,
+      repeat_with_changed_constraints: repeatWithChangedConstraints,
+    };
+
+    const gatingReason = planMeta.allowOffers ? undefined : planMeta.structured ? "waiting_for_explicit_search_intent" : "needs_structured_requirement";
+
+    collector?.recordNode({
+      name: "execution",
+      input: { intent: state.intent, preferenceState: updatedPreferenceState } as Record<string, unknown>,
+      output: { offers: offers.length, content_state } as Record<string, unknown>,
+    });
+
     return {
-      route: decision.route,
+      preferenceState: updatedPreferenceState,
+      offers,
+      route: routingDecision.route,
       content_state,
-      offers: filteredOffers,
+      offersMeta,
       repeat_with_changed_constraints: repeatWithChangedConstraints,
-      conversationPlan: planHint,
-      gatingReason: allowOffers ? undefined : structured ? "waiting_for_explicit_search_intent" : "needs_structured_requirement",
-      ...withLog(state, { agent: "routing", input: { intent: state.intent, offers: offers.length } as Record<string, unknown>, output: { decision, repeatWithChangedConstraints, allowOffers, structured } as unknown as Record<string, unknown> }),
+      conversationPlan: planMeta.planHint,
+      planMeta,
+      gatingReason,
+      ...withLog(state, {
+        agent: "execution",
+        input: { intent: state.intent, preferenceState: updatedPreferenceState } as Record<string, unknown>,
+        output: { offers: offers.length, repeatWithChangedConstraints },
+      }),
     };
   });
 
@@ -382,89 +519,131 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
     };
   });
 
-  graph.addNode("clarificationNode", async (state: GraphState) => {
-    if (!state.content_state?.clarification_required) {
-      collector?.recordNode({ name: "clarification", input: {}, output: { skipped: true } });
-      return {};
+  graph.addNode("evaluationNode", async (state: GraphState) => {
+    const uiHealth = (state.ui_health as UIHealth) || { degraded_mode: false, render_text_only: false, show_banner: false };
+    const content_state = (state.content_state as ContentState & { repeat_with_changed_constraints?: boolean }) || defaultContentState();
+
+    const frustrationSignal = detectFrustrationSignals({
+      userMessage: state.userMessage,
+      intentType: (state.intent as any)?.intent,
+      events: state.clientEvents as ClientEvent[],
+    });
+    const intentFrustration = Boolean((state.intent as any)?.frustration);
+    const frustration = frustrationSignal.frustrated || intentFrustration;
+
+    const evaluation = summarizeEvaluation(content_state, uiHealth, frustration);
+    if (evaluation.severity !== "info") {
+      recordReflection({
+        reason: content_state.repeat_with_changed_constraints ? "repeat_with_changed_constraints" : "fallback_used",
+        intent: (state.intent as any)?.intent,
+        gatingReason: state.gatingReason || (state.planMeta?.allowOffers ? undefined : "waiting_for_requirements"),
+      });
     }
-    const reply = "Lass uns kurz klären: Nennung von Nutzung (Stadt/Langstrecke/Gelände) und grobes Budget reichen, dann starte ich direkt.";
-    collector?.recordNode({ name: "clarification", input: { intent: state.intent } as Record<string, unknown>, output: { reply } as Record<string, unknown> });
-    return { response: { reply, followUp: "Gib mir Nutzung + Budget, dann zeige ich sofort passende Beispiele." }, content: { offers: [], visuals: [], definition: "" } };
+    if (frustration) {
+      recordReflection({ reason: "frustration", intent: (state.intent as any)?.intent, gatingReason: "user_frustrated" });
+    }
+
+    collector?.recordNode({
+      name: "evaluation",
+      input: { content_state, uiHealth, frustration } as Record<string, unknown>,
+      output: evaluation as Record<string, unknown>,
+    });
+
+    return {
+      evaluation,
+      intent: { ...(state.intent as any), frustration } as unknown as Record<string, unknown>,
+      ...withLog(state, { agent: "evaluation", input: { content_state, uiHealth } as Record<string, unknown>, output: evaluation as Record<string, unknown> }),
+    };
   });
 
   graph.addNode("responseNode", async (state: GraphState) => {
     const uiHealth = (state.ui_health as UIHealth) || { degraded_mode: false, render_text_only: false, show_banner: false };
-    const content_state = (state.content_state as ContentState & { repeat_with_changed_constraints?: boolean }) || {
-      has_results: false,
-      num_results: 0,
-      clarification_required: false,
-      no_relevant_results: true,
-      fallback_used: false,
-      strict_matching: false,
-    };
+    const content_state = (state.content_state as ContentState & { repeat_with_changed_constraints?: boolean }) || defaultContentState();
     const offers = (state.offers as any[]) || [];
-    const history = new OffersHistory(state.offersHistory as any);
-    history.record({
-      items: offers,
-      intentType: (state.intent as any)?.intent,
-      preferenceState:
-        (state.preferenceState as PreferenceConstraintStateData) || {
-          product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] },
-          conversation: {},
-          style: {},
-        },
-    });
-    const offersHistory = history.snapshot();
+    const preferenceState = (state.preferenceState as PreferenceConstraintStateData) || {
+      product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] },
+      conversation: {},
+      style: {},
+    };
     const planHint = state.conversationPlan as string | undefined;
     const reflectionSummary = loadReflectionSummary();
-    let reply = buildResponseText(
+    const evaluation = state.evaluation as TurnEvaluation | undefined;
+    const frustration = Boolean((state.intent as any)?.frustration);
+
+    const { reply, followUp } = composeReply({
       content_state,
       uiHealth,
-      Boolean(state.intent?.frustration),
-      planHint || reflectionSummary,
-      state.userMessage as string,
-    );
-    if (state.lastReply && reply === state.lastReply) {
-      reply = `${reply} Lass uns diesmal einen anderen Ansatz wählen: Ich stelle dir zwei präzise Fragen oder schlage Alternativen vor.`;
-    }
-    if (!content_state.has_results || content_state.no_relevant_results || content_state.clarification_required) {
-      const questions = [];
-      if (!(state.preferenceState as PreferenceConstraintStateData)?.product?.useCases?.length) {
-        questions.push("Wofür nutzt du das Fahrzeug am meisten (Stadt, Langstrecke, Gelände)?");
-      }
-      if (!(state.preferenceState as PreferenceConstraintStateData)?.product?.budget) {
-        questions.push("Gibt es ein Budget, das ich berücksichtigen soll?");
-      }
-      if (questions.length) {
-        reply = `${reply} ${questions.slice(0, 2).join(" ")}`;
-      }
-    }
+      planHint: planHint || reflectionSummary,
+      frustration,
+      evaluation,
+      lastReply: state.lastReply,
+    });
+
+    const visuals = uiHealth.render_text_only ? [] : offers.map((o) => o.image_url).filter(Boolean).slice(0, 6);
     const content = {
       offers,
-      visuals: uiHealth.render_text_only ? [] : offers.map((o) => o.image_url).filter(Boolean).slice(0, 6),
+      visuals,
       definition: "Generische Übersicht",
     };
-    collector?.recordNode({ name: "response", input: { content_state, uiHealth } as Record<string, unknown>, output: { reply, followUp: "" } as Record<string, unknown> });
+
+    const offersHistory = updateOffersHistory(offers, state.intent as any, preferenceState, new OffersHistory(state.offersHistory as any));
+
+    collector?.recordNode({ name: "response", input: { content_state, uiHealth } as Record<string, unknown>, output: { reply, followUp } as Record<string, unknown> });
     return {
-      response: { reply, followUp: uiHealth.render_text_only ? "Visuelle Elemente sind vorübergehend deaktiviert." : "" },
+      response: { reply, followUp },
       content,
       offersHistory,
       content_state,
       ui_health: uiHealth,
       lastReply: reply,
-      ...withLog(state, { agent: "response", input: { content_state, uiHealth } as Record<string, unknown>, output: { reply, followUp: "" } as Record<string, unknown> }),
+      ...withLog(state, { agent: "response", input: { content_state, uiHealth } as Record<string, unknown>, output: { reply, followUp } as Record<string, unknown> }),
     };
   });
 
-  graph.addEdge(START, "clientEventNode" as any);
+  graph.addNode("memoryPersistNode", async (state: GraphState) => {
+    if (!state.memoryManager || !state.sessionId) return {};
+    const snapshot = mergeMemory(state.memorySnapshot as SessionMemorySnapshot | undefined, state.history as ConversationMessage[]);
+    const window = new ShortTermMemoryWindow(snapshot.shortTerm);
+    window.add([
+      { role: "user", content: state.userMessage },
+      { role: "assistant", content: (state.response as any)?.reply || "" },
+      (state.response as any)?.followUp ? { role: "assistant", content: (state.response as any)?.followUp } : undefined,
+    ].filter(Boolean) as ConversationMessage[]);
+
+    const nextSnapshot: SessionMemorySnapshot = {
+      shortTerm: window.snapshot(),
+      working: (state.preferenceState as PreferenceConstraintStateData) || snapshot.working,
+      longTerm: {
+        ...snapshot.longTerm,
+        lastPlan: state.conversationPlan || snapshot.longTerm.lastPlan,
+        lastUiHealthNote: state.ui_health?.note || snapshot.longTerm.lastUiHealthNote,
+        reflections: [
+          ...(snapshot.longTerm.reflections || []),
+          ...(state.evaluation?.notes || []),
+        ].filter(Boolean).slice(-20),
+        frustrationCount: (snapshot.longTerm.frustrationCount || 0) + (state.intent?.frustration ? 1 : 0),
+        personaAdjustments: snapshot.longTerm.personaAdjustments || [],
+      },
+    };
+
+    state.memoryManager.persist(String(state.sessionId), nextSnapshot);
+    collector?.recordNode({ name: "memoryPersist", input: { sessionId: state.sessionId } as Record<string, unknown>, output: nextSnapshot as unknown as Record<string, unknown> });
+    return {
+      memorySnapshot: nextSnapshot,
+      ...withLog(state, { agent: "memoryPersist", input: { sessionId: state.sessionId } as Record<string, unknown>, output: { persisted: true } }),
+    };
+  });
+
+  graph.addEdge(START, "memoryBootstrapNode" as any);
+  graph.addEdge("memoryBootstrapNode" as any, "clientEventNode" as any);
   graph.addEdge("clientEventNode" as any, "intentParserNode" as any);
-  graph.addEdge("intentParserNode" as any, "preferenceStateNode" as any);
-  graph.addEdge("preferenceStateNode" as any, "entityFetchNode" as any);
-  graph.addEdge("entityFetchNode" as any, "routingNode" as any);
-  graph.addEdge("routingNode" as any, "uiHealthPolicyNode" as any);
-  graph.addEdge("uiHealthPolicyNode" as any, "clarificationNode" as any);
-  graph.addEdge("clarificationNode" as any, "responseNode" as any);
-  graph.addEdge("responseNode" as any, END);
+  graph.addEdge("intentParserNode" as any, "plannerNode" as any);
+  graph.addEdge("plannerNode" as any, "executionNode" as any);
+  graph.addEdge("executionNode" as any, "uiHealthPolicyNode" as any);
+  graph.addEdge("uiHealthPolicyNode" as any, "evaluationNode" as any);
+  graph.addEdge("evaluationNode" as any, "responseNode" as any);
+  graph.addEdge("responseNode" as any, "memoryPersistNode" as any);
+  graph.addEdge("memoryPersistNode" as any, END);
 
   return graph.compile();
 };
