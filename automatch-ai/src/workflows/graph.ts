@@ -30,6 +30,8 @@ import { loadReflectionSummary, recordReflection } from "../utils/reflection.js"
 import { friendlyPersona, applyPersonaTone } from "../ux/persona.js";
 import { detectFrustrationSignals } from "../ux/frustration.js";
 import { MemoryManager, mergeMemory, SessionMemorySnapshot, ShortTermMemoryWindow } from "../memory/memory.js";
+import { ChatOpenAI } from "@langchain/openai";
+import { settings } from "../config/settings.js";
 
 export type GraphState = ConversationState &
   Record<string, unknown> & {
@@ -315,6 +317,8 @@ const composeReply = ({
   frustration,
   evaluation,
   lastReply,
+  seed,
+  includePlanHint,
 }: {
   content_state: ContentState & { repeat_with_changed_constraints?: boolean };
   uiHealth: UIHealth;
@@ -322,24 +326,44 @@ const composeReply = ({
   frustration: boolean;
   evaluation?: TurnEvaluation;
   lastReply?: string;
+  seed: string;
+  includePlanHint: boolean;
 }) => {
+  const hashSeed = (seed || "").split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  const pick = (arr: string[]) => arr[Math.abs(hashSeed) % arr.length];
+
   let base = "";
   if (content_state.repeat_with_changed_constraints) {
-    base = "Die neuen Filter liefern dieselben Ergebnisse. Magst du die Kriterien anpassen?";
+    base = pick([
+      "Gleiche Treffer trotz neuer Filter – wollen wir die Kriterien ändern?",
+      "Neue Filter, gleiche Ergebnisse. Sollen wir enger oder breiter filtern?",
+    ]);
   } else if (!content_state.has_results || content_state.no_relevant_results) {
-    base = "Noch nichts Passendes. Lass uns die Kriterien kurz schärfen.";
+    base = pick([
+      "Noch nichts Passendes. Lass uns die Kriterien kurz schärfen.",
+      "Keine Treffer bisher. Zwei schnelle Fragen, dann bessere Vorschläge.",
+    ]);
   } else {
-    base = `Ich habe ${content_state.num_results} Optionen vorbereitet.`;
+    base = pick([
+      `Ich habe ${content_state.num_results} Optionen vorbereitet.`,
+      `${content_state.num_results} Optionen liegen bereit.`,
+    ]);
   }
 
   if (evaluation?.severity === "error") {
-    base = "Ich pausiere kurz, bis die UI stabil ist oder ich mehr Signale habe.";
+    base = pick([
+      "Ich pausiere kurz, bis die UI stabil ist oder ich mehr Signale habe.",
+      "Kurze Pause, bis die UI wieder stabil ist.",
+    ]);
   }
 
-  const reply = applyPersonaTone(base, friendlyPersona, { frustration, planHint });
+  const reply = applyPersonaTone(base, friendlyPersona, { frustration, planHint: includePlanHint ? planHint : undefined });
   const followUp =
     content_state.has_results && !content_state.clarification_required
-      ? "Willst du Budget oder Marke einschränken?"
+      ? pick([
+          "Willst du Budget oder Marke einschränken?",
+          "Soll ich nach Preis oder Marke filtern?",
+        ])
       : uiHealth.render_text_only
         ? "Visuelle Elemente reduziere ich, bis die UI stabil ist."
         : evaluation?.followUp || "";
@@ -352,6 +376,59 @@ const composeReply = ({
   }
 
   return { reply, followUp };
+};
+
+const hasLLM = Boolean(settings.OPENAI_API_KEY);
+let cachedFrontLLM: ChatOpenAI | null = null;
+const getFrontLLM = () => {
+  if (!hasLLM) return null;
+  if (!cachedFrontLLM) {
+    cachedFrontLLM = new ChatOpenAI({
+      modelName: settings.OPENAI_MODEL,
+      temperature: 0.55,
+    });
+  }
+  return cachedFrontLLM;
+};
+
+const rewriteWithLLM = async ({
+  reply,
+  followUp,
+  context,
+}: {
+  reply: string;
+  followUp: string;
+  context: { userMessage?: string; intent?: string; planHint?: string };
+}) => {
+  const llm = getFrontLLM();
+  if (!llm) return { reply, followUp };
+  const prompt = [
+    {
+      role: "system",
+      content:
+        "Du bist ein freundlicher, knapper deutscher Assistent. Schreibe eine kurze, natürliche Antwort, ohne Entschuldigungsfloskeln zu wiederholen. Falls ein Follow-up vorhanden ist, füge es als zweite, kurze Anweisung an. Keine Emoji.",
+    },
+    {
+      role: "user",
+      content: JSON.stringify({
+        base_reply: reply,
+        follow_up: followUp,
+        user_message: context.userMessage,
+        intent: context.intent,
+        plan_hint: context.planHint,
+      }),
+    },
+  ];
+  try {
+    const res = await llm.invoke(prompt as any);
+    const text = typeof res === "string" ? res : (res as any)?.content || reply;
+    return {
+      reply: String(text).trim() || reply,
+      followUp: followUp,
+    };
+  } catch (err) {
+    return { reply, followUp };
+  }
 };
 
 const updateOffersHistory = (
@@ -586,15 +663,29 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
     const reflectionSummary = loadReflectionSummary();
     const evaluation = state.evaluation as TurnEvaluation | undefined;
     const frustration = Boolean((state.intent as any)?.frustration);
+    const includePlanHint = !content_state.has_results || content_state.clarification_required || Boolean(content_state.repeat_with_changed_constraints);
 
-    const { reply, followUp } = composeReply({
+    const composed = composeReply({
       content_state,
       uiHealth,
       planHint: planHint || reflectionSummary,
       frustration,
       evaluation,
       lastReply: state.lastReply,
+      seed: `${state.sessionId || ""}|${state.userMessage || ""}`,
+      includePlanHint,
     });
+    let reply = composed.reply;
+    let followUp = composed.followUp;
+    if (hasLLM && !uiHealth.render_text_only && (evaluation?.severity === "info" || evaluation?.severity === "warn")) {
+      const rewritten = await rewriteWithLLM({
+        reply,
+        followUp,
+        context: { userMessage: state.userMessage as string, intent: (state.intent as any)?.intent, planHint: includePlanHint ? planHint : undefined },
+      });
+      reply = rewritten.reply;
+      followUp = rewritten.followUp;
+    }
 
     const visuals = uiHealth.render_text_only ? [] : offers.map((o) => o.image_url).filter(Boolean).slice(0, 6);
     const content = {
