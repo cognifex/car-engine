@@ -14,6 +14,7 @@ import { ProfileBuilderAgent } from "../agents/ProfileBuilderAgent.js";
 import { FrontAgent } from "../agents/FrontAgent.js";
 import { buildGraph } from "./graph.js";
 import { ConversationState, ConversationMessage } from "../utils/types.js";
+import { SessionTraceCollector, SessionDumpStore } from "../utils/sessionDump.js";
 
 export const createModel = () =>
   new ChatOpenAI({
@@ -39,9 +40,21 @@ export const createAgents = () => {
   };
 };
 
-export const runPipeline = async (userMessage: string, history: ConversationMessage[] = []): Promise<ConversationState> => {
+export const runPipeline = async (
+  userMessage: string,
+  history: ConversationMessage[] = [],
+  options: { sessionId?: string; redacted?: boolean } = {}
+): Promise<ConversationState> => {
+  const sessionId = options.sessionId || `sess-${Date.now()}`;
+  const collector = new SessionTraceCollector({
+    sessionId,
+    modelId: settings.OPENAI_MODEL,
+    redacted: options.redacted,
+    store: new SessionDumpStore(),
+  });
+
   const agents = createAgents();
-  const graph = buildGraph(agents);
+  const graph = buildGraph(agents, collector);
 
   const initialState: ConversationState = {
     userMessage,
@@ -49,9 +62,12 @@ export const runPipeline = async (userMessage: string, history: ConversationMess
     debugLogs: [],
   };
 
-  logger.info({ userMessage }, "Starting AutoMatch AI graph run");
+  logger.info({ userMessage, sessionId }, "Starting AutoMatch AI graph run");
+  collector.startTurn({ userMessage, history });
   const result = await graph.invoke(initialState as any);
   const merged: ConversationState = { ...initialState, ...(result as Record<string, unknown>) } as ConversationState;
-  logger.info({ response: merged.response }, "Finished graph run");
-  return merged;
+  collector.finishTurn({ reply: merged.response?.reply || "", followUp: merged.response?.followUp || "", state: merged });
+  collector.finalize();
+  logger.info({ response: merged.response, sessionId }, "Finished graph run");
+  return { ...merged, sessionId } as ConversationState;
 };

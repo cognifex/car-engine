@@ -1,5 +1,6 @@
 import { StateGraph, START, END } from "@langchain/langgraph";
 import { ConversationState, AgentLogEntry } from "../utils/types.js";
+import { SessionTraceCollector } from "../utils/sessionDump.js";
 import { ProfilingAgent } from "../agents/ProfilingAgent.js";
 import { IntentAgent } from "../agents/IntentAgent.js";
 import { RouterAgent } from "../agents/RouterAgent.js";
@@ -25,7 +26,7 @@ export interface AgentBundle {
 
 type GraphState = ConversationState & Record<string, unknown>;
 
-export const buildGraph = (agents: AgentBundle) => {
+export const buildGraph = (agents: AgentBundle, collector?: SessionTraceCollector) => {
   const graph = new StateGraph<GraphState>({
     channels: {
       userMessage: null,
@@ -52,7 +53,15 @@ export const buildGraph = (agents: AgentBundle) => {
 
   graph.addNode("profilingNode", async (state: GraphState) => {
     const input = { message: state.userMessage, history: state.history || [] };
+    const startedAt = new Date();
     const output = await agents.profiling.run(input);
+    collector?.recordNode({
+      name: "profiling",
+      input: input as Record<string, unknown>,
+      output: output as Record<string, unknown>,
+      startedAt,
+      endedAt: new Date(),
+    });
     return {
       profiling: output,
       ...withLog(state, { agent: "profiling", input, output: output as Record<string, unknown> }),
@@ -65,7 +74,15 @@ export const buildGraph = (agents: AgentBundle) => {
       profiling: state.profiling,
       history: state.history,
     };
+    const startedAt = new Date();
     const output = await agents.intent.run(input);
+    collector?.recordNode({
+      name: "intent",
+      input: input as Record<string, unknown>,
+      output: output as Record<string, unknown>,
+      startedAt,
+      endedAt: new Date(),
+    });
     return {
       intent: output,
       ...withLog(state, { agent: "intent", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
@@ -79,6 +96,7 @@ export const buildGraph = (agents: AgentBundle) => {
       intent: state.intent,
       history: state.history,
     };
+    const startedAt = new Date();
     const output = await agents.router.run(input);
     const lowerMsg = (state.userMessage || "").toLowerCase();
     const retroFlag = lowerMsg.includes("retro") || lowerMsg.includes("oldtimer") || lowerMsg.includes("klassik") || lowerMsg.includes("vintage") || lowerMsg.includes("youngtimer");
@@ -117,6 +135,13 @@ export const buildGraph = (agents: AgentBundle) => {
       patchedRoute = { ...patchedRoute, includeOffers: true, includeMatching: false };
     }
 
+    collector?.recordNode({
+      name: "router",
+      input: input as Record<string, unknown>,
+      output: patchedRoute as Record<string, unknown>,
+      startedAt,
+      endedAt: new Date(),
+    });
     return {
       route: patchedRoute,
       ...withLog(state, { agent: "router", input: input as Record<string, unknown>, output: patchedRoute as Record<string, unknown> }),
@@ -124,14 +149,25 @@ export const buildGraph = (agents: AgentBundle) => {
   });
 
   graph.addNode("knowledgeNode", async (state: GraphState) => {
-    if (state.route?.includeKnowledge === false) return {};
+    if (state.route?.includeKnowledge === false) {
+      collector?.recordNode({ name: "knowledge", input: {}, output: { skipped: true }, startedAt: new Date(), endedAt: new Date() });
+      return {};
+    }
     const input = {
       message: state.userMessage,
       intent: state.intent,
       profiling: state.profiling,
       history: state.history,
     };
+    const startedAt = new Date();
     const output = await agents.knowledge.run(input);
+    collector?.recordNode({
+      name: "knowledge",
+      input: input as Record<string, unknown>,
+      output: output as Record<string, unknown>,
+      startedAt,
+      endedAt: new Date(),
+    });
     return {
       knowledge: output,
       ...withLog(state, { agent: "knowledge", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
@@ -145,7 +181,15 @@ export const buildGraph = (agents: AgentBundle) => {
       intent: state.intent,
       history: state.history,
     };
+    const startedAt = new Date();
     const output = await agents.profileBuilder.run(input);
+    collector?.recordNode({
+      name: "profileBuilder",
+      input: input as Record<string, unknown>,
+      output: output as Record<string, unknown>,
+      startedAt,
+      endedAt: new Date(),
+    });
     return {
       profile: output,
       ...withLog(state, { agent: "profileBuilder", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
@@ -153,9 +197,20 @@ export const buildGraph = (agents: AgentBundle) => {
   });
 
   graph.addNode("visualNode", async (state: GraphState) => {
-    if (state.route?.includeVisuals === false) return {};
+    if (state.route?.includeVisuals === false) {
+      collector?.recordNode({ name: "visual", input: {}, output: { skipped: true }, startedAt: new Date(), endedAt: new Date() });
+      return {};
+    }
     const input = { intent: state.intent, knowledge: state.knowledge, history: state.history };
+    const startedAt = new Date();
     const output = await agents.visual.run(input);
+    collector?.recordNode({
+      name: "visual",
+      input: input as Record<string, unknown>,
+      output: output as Record<string, unknown>,
+      startedAt,
+      endedAt: new Date(),
+    });
     return {
       visuals: output,
       ...withLog(state, { agent: "visual", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
@@ -163,13 +218,24 @@ export const buildGraph = (agents: AgentBundle) => {
   });
 
   graph.addNode("matchingNode", async (state: GraphState) => {
-    if (state.route?.includeMatching === false) return {};
+    if (state.route?.includeMatching === false) {
+      collector?.recordNode({ name: "matching", input: {}, output: { skipped: true }, startedAt: new Date(), endedAt: new Date() });
+      return {};
+    }
     const input = {
       intent: state.intent,
       profiling: state.profiling,
       history: state.history,
     };
+    const startedAt = new Date();
     const output = await agents.matching.run(input);
+    collector?.recordNode({
+      name: "matching",
+      input: input as Record<string, unknown>,
+      output: output as Record<string, unknown>,
+      startedAt,
+      endedAt: new Date(),
+    });
     return {
       matches: output,
       ...withLog(state, { agent: "matching", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),
@@ -177,7 +243,10 @@ export const buildGraph = (agents: AgentBundle) => {
   });
 
   graph.addNode("offerNode", async (state: GraphState) => {
-    if (state.route?.includeOffers === false) return {};
+    if (state.route?.includeOffers === false) {
+      collector?.recordNode({ name: "offers", input: {}, output: { skipped: true }, startedAt: new Date(), endedAt: new Date() });
+      return {};
+    }
     const matchModel = state.matches?.suggestions?.[0]?.model;
     const modelParts = matchModel ? matchModel.split(" ") : [];
     const brandGuess = modelParts[0];
@@ -196,7 +265,15 @@ export const buildGraph = (agents: AgentBundle) => {
       profile: state.profile,
       offerSearchState: state.offerSearchState,
     };
+    const startedAt = new Date();
     const output = await agents.offers.run(input as any);
+    collector?.recordNode({
+      name: "offers",
+      input: input as Record<string, unknown>,
+      output: output as Record<string, unknown>,
+      startedAt,
+      endedAt: new Date(),
+    });
     return {
       offers: output.offers,
       offersMeta: output.meta,
@@ -216,6 +293,15 @@ export const buildGraph = (agents: AgentBundle) => {
       matches: state.matches,
       profile: state.profile,
       offersMeta: state.offersMeta,
+    });
+    const startedAt = new Date();
+    const endedAt = new Date();
+    collector?.recordNode({
+      name: "contentAggregator",
+      input: { offers, visuals, definition } as Record<string, unknown>,
+      output: aggregated as Record<string, unknown>,
+      startedAt,
+      endedAt,
     });
     return {
       content: aggregated,
@@ -239,7 +325,15 @@ export const buildGraph = (agents: AgentBundle) => {
       history: state.history,
       debugLogs: state.debugLogs,
     };
+    const startedAt = new Date();
     const output = await agents.front.run(input);
+    collector?.recordNode({
+      name: "front",
+      input: input as Record<string, unknown>,
+      output: output as Record<string, unknown>,
+      startedAt,
+      endedAt: new Date(),
+    });
     return {
       response: output,
       ...withLog(state, { agent: "front", input: input as Record<string, unknown>, output: output as Record<string, unknown> }),

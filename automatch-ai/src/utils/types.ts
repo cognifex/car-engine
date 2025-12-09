@@ -162,4 +162,5 @@ export interface ConversationState {
   offersMeta?: Record<string, unknown>;
   offerSearchState?: { failureCount?: number; lastStrategy?: string };
   debugLogs?: AgentLogEntry[];
+  sessionId?: string;
 }

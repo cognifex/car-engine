@@ -20,6 +20,7 @@ const feedbackLog = path.join(__dirname, 'feedback.log');
 const apifyModulePath = path.join(__dirname, '..', 'automatch-ai', 'dist', 'utils', 'apify.js');
 const specsModulePath = path.join(__dirname, '..', 'automatch-ai', 'dist', 'utils', 'specs.js');
 const sessionLogsDir = path.join(__dirname, 'session-logs');
+const sessionDumpModulePath = path.join(__dirname, '..', 'automatch-ai', 'dist', 'utils', 'sessionDump.js');
 
 // Lazy-load the LangGraph pipeline built in automatch-ai/dist
 const pipelineModulePath = path.join(__dirname, '..', 'automatch-ai', 'dist', 'workflows', 'pipeline.js');
@@ -68,7 +69,7 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const { runPipeline } = await import(pathToFileURL(pipelineModulePath).href);
-    const result = await runPipeline(message, history);
+    const result = await runPipeline(message, history, { sessionId });
     const payload = buildPayload(result);
 
     if (!payload.reply) {
@@ -97,6 +98,42 @@ app.post('/api/chat', async (req, res) => {
     } else {
       res.end();
     }
+  }
+});
+
+app.get('/api/session-dump/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const redacted = req.query.redacted === 'true';
+    if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
+    if (!fs.existsSync(sessionDumpModulePath)) {
+      console.error('Session dump module not built. Run `cd automatch-ai && npm run build`');
+      return res.status(500).json({ error: 'Session dump module not built' });
+    }
+
+    const { SessionDumpStore } = await import(pathToFileURL(sessionDumpModulePath).href);
+    const store = new SessionDumpStore(path.join(__dirname, '..', 'automatch-ai', 'data', 'session-dumps'));
+    const dump = store.load(sessionId);
+    if (!dump) return res.status(404).json({ error: 'Session not found' });
+
+    const responsePayload = redacted
+      ? {
+          ...dump,
+          metadata: { ...dump.metadata, redacted: true },
+          conversation: dump.conversation.map((c) => ({ ...c, text: '[redacted]' })),
+          turns: dump.turns.map((t) => ({
+            ...t,
+            userMessage: '[redacted]',
+            reply: '[redacted]',
+            followUp: t.followUp ? '[redacted]' : '',
+          })),
+        }
+      : dump;
+
+    res.json({ dump: responsePayload });
+  } catch (err) {
+    console.error('Failed to load session dump', err);
+    res.status(500).json({ error: 'Failed to load session dump' });
   }
 });
 
