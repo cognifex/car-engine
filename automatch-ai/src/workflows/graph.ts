@@ -3,13 +3,15 @@ import {
   AgentLogEntry,
   ClientEvent,
   ConversationState,
-  JeepModel,
-  JeepValidationResult,
   UIRecoveryInstruction,
   UIState,
+  ContentState,
+  UIHealth,
 } from "../utils/types.js";
 import { SessionTraceCollector } from "../utils/sessionDump.js";
 import { findJeepModels } from "../utils/jeepCatalog.js";
+import { evaluateUiHealth } from "../policies/uiHealthPolicy.js";
+import { evaluateRouting } from "../policies/routingPolicy.js";
 
 export type GraphState = ConversationState & Record<string, unknown>;
 
@@ -17,40 +19,15 @@ const withLog = (state: GraphState, entry: AgentLogEntry) => ({
   debugLogs: [...(state.debugLogs || []), entry],
 });
 
-const normalizeBrand = (message: string) => {
-  if (!message) return "";
-  const lower = message.toLowerCase();
-  if (lower.includes("jeep")) return "jeep";
-  if (lower.includes("cherokee") || lower.includes("wrangler") || lower.includes("renegade")) return "jeep";
-  return "";
-};
-
-const detectFrustration = (message: string) => {
-  const lower = message.toLowerCase();
-  const triggers = ["nervig", "frust", "funktioniert nicht", "geht nicht", "nichts zu sehen", "warum"];
-  return triggers.some((t) => lower.includes(t));
-};
-
 const deriveIntent = (state: GraphState) => {
   const msg = state.userMessage || "";
-  const brand = normalizeBrand(msg);
-  const frustration = detectFrustration(msg);
-  const wantsJeep = brand === "jeep";
-  const isUiIssue = Boolean(state.uiState?.imageFailures) || msg.toLowerCase().includes("nichts");
+  const frustration = /nervig|frust|funktioniert nicht|geht nicht|nichts zu sehen|warum/i.test(msg);
+  const needsClarification = !msg || msg.trim().length < 6;
 
-  if (isUiIssue) {
-    return { intent: "ui_mismatch", brand: brand || state.intent?.brand, segment: "suv", frustration } as any;
-  }
-
-  if (wantsJeep) {
-    return { intent: "car_search", brand: "jeep", segment: "suv", frustration } as any;
-  }
-
-  if (!msg || msg.length < 6) {
-    return { intent: "needs_clarification", brand: brand || "", segment: "suv", frustration } as any;
-  }
-
-  return { intent: "car_search", brand: brand || state.intent?.brand || "", segment: "suv", frustration } as any;
+  return {
+    intent: needsClarification ? "needs_clarification" : "informational",
+    frustration,
+  } as any;
 };
 
 const aggregateClientEvents = (events: ClientEvent[] = []): UIState => {
@@ -67,119 +44,64 @@ const aggregateClientEvents = (events: ClientEvent[] = []): UIState => {
   };
 };
 
-const buildRoute = (intent: string, brand: string, uiState: UIState) => {
-  const jeepFocus = brand === "jeep";
-  return {
-    includeKnowledge: false,
-    includeVisuals: false,
-    includeMatching: false,
-    includeOffers: true,
-    strictOffers: true,
-    retryMatching: false,
-    jeepFocus,
-    needsClarification: intent === "needs_clarification" || (!brand && intent !== "ui_mismatch"),
-    runUiRecovery: intent === "ui_mismatch" || uiState.imageFailures > 0 || uiState.resultsNotVisible,
-  } as any;
-};
-
-const jeepSearch = (): JeepModel[] => {
+const loadDemoEntities = () => {
   return findJeepModels().map((entry) => ({
     id: entry.id,
-    model: entry.model,
+    title: entry.model,
     year: entry.year,
-    power: entry.power,
-    drivetrain: entry.drivetrain,
-    fuel: entry.fuel,
     summary: entry.summary,
+    attributes: [entry.power, entry.drivetrain, entry.fuel].filter(Boolean),
     image: entry.image,
   }));
 };
 
-const validateJeepResults = (models: JeepModel[], uiState: UIState): JeepValidationResult => {
-  const issues: string[] = [];
-  let renderTextOnly = false;
-
-  if (!models || models.length === 0) {
-    issues.push("Keine Jeep-Modelle gefunden");
-    renderTextOnly = true;
-  }
-
-  if (uiState.imageFailures > 0) {
-    issues.push("Bilder laden nicht zuverlässig");
-    renderTextOnly = true;
-  }
-
-  const validated = models.map((m) => ({
-    ...m,
-    imageOptional: true,
-    fallbackReason: uiState.imageFailures > 0 ? "Bilder ausgefallen" : "",
+const buildOffersFromEntities = (entities: Record<string, unknown>[]) => {
+  return entities.map((m) => ({
+    title: String(m.title || "Ergebnis"),
+    model: String(m.title || "Ergebnis"),
+    price: 0,
+    dealer: "Datenquelle",
+    link: "",
+    image_url: String(m.image || ""),
+    location: "",
+    mileage: "",
+    badge: Array.isArray(m.attributes) ? (m.attributes as string[]).filter(Boolean).join(" • ") : "",
+    created_at: new Date().toISOString(),
+    vin: String(m.id || ""),
+    isOffroadRelevant: false,
+    isExactMatchToSuggestion: true,
+    relevanceScore: 1,
+    source: "generic-catalog",
+    fallbackReason: "",
   }));
-
-  return { models: validated, issues, renderTextOnly };
 };
 
-const buildRecovery = (validation: JeepValidationResult, uiState: UIState): UIRecoveryInstruction => {
-  const renderTextOnly = validation.renderTextOnly || uiState.imageFailures > 0;
-  const showBanner = renderTextOnly || uiState.networkChanged || uiState.resultsNotVisible;
-  const reasons = [] as string[];
-  if (uiState.imageFailures > 0) reasons.push("Bilder fehlgeschlagen");
-  if (uiState.networkChanged) reasons.push("Netzwerk geändert");
-  if (uiState.resultsNotVisible) reasons.push("Ergebnisse nicht sichtbar");
-  if (validation.issues.length > 0) reasons.push(...validation.issues);
+const buildRecovery = (uiHealth: UIHealth): UIRecoveryInstruction => {
   return {
-    renderTextOnly,
-    degradedMode: renderTextOnly,
-    showBanner,
-    reason: reasons.join("; ") || undefined,
-    note: renderTextOnly ? "Zeige alle Jeep-Daten auch ohne Bilder." : undefined,
+    renderTextOnly: uiHealth.render_text_only,
+    degradedMode: uiHealth.degraded_mode,
+    showBanner: uiHealth.show_banner,
+    reason: uiHealth.reason,
+    note: uiHealth.note,
   };
 };
 
-const buildOffersFromJeep = (models: JeepModel[]) => {
-  return models.map((m) => ({
-    title: `${m.model} (${m.year})`,
-    model: m.model,
-    price: 0,
-    dealer: "Jeep Direkt-Infos",
-    link: "",
-    image_url: m.image || "",
-    location: "",
-    mileage: "",
-    badge: [m.power, m.drivetrain, m.fuel].filter(Boolean).join(" • "),
-    created_at: new Date().toISOString(),
-    vin: m.id,
-    isOffroadRelevant: true,
-    isExactMatchToSuggestion: true,
-    relevanceScore: 1,
-    source: "jeep-catalog",
-    fallbackReason: m.fallbackReason || "",
-  }));
-};
-
-const buildResponseText = (
-  validation: JeepValidationResult,
-  recovery: UIRecoveryInstruction,
-  intentBrand: string,
-  frustration: boolean,
-) => {
+const buildResponseText = (content_state: ContentState, uiHealth: UIHealth, frustration: boolean) => {
   const lines: string[] = [];
-  if (frustration || recovery.renderTextOnly) {
-    lines.push("Ich sehe, das ist gerade frustrierend – die Bilder wollen nicht alle laden.");
+  if (frustration && uiHealth.degraded_mode) {
+    lines.push("Ich sehe Störungen – ich halte die Darstellung stabil und bleibe bei Text.");
   }
-  if (recovery.renderTextOnly) {
-    lines.push("Kein Stress: Ich gebe dir die Jeep-Infos sofort als Text, damit nichts verloren geht.");
+  if (!content_state.has_results) {
+    lines.push("Keine Ergebnisse gefunden, ich bleibe in einem stabilen Textmodus.");
+  } else {
+    lines.push(`Ich habe ${content_state.num_results} Ergebnisse zusammengestellt.`);
   }
-  if (intentBrand === "jeep" && validation.models.length > 0) {
-    const highlights = validation.models
-      .slice(0, 4)
-      .map((m) => `${m.model} ${m.year}: ${m.power}, ${m.drivetrain}, ${m.fuel}. ${m.summary}`)
-      .join(" \n");
-    lines.push("Hier sind die wichtigsten Jeep-Modelle:");
-    lines.push(highlights);
-  } else if (validation.models.length === 0) {
-    lines.push("Ich suche nach Jeep-Details, liefere dir aber direkt Text, falls Bilder fehlen.");
+  if (content_state.clarification_required) {
+    lines.push("Gib mir bitte noch Kontext oder Parameter, damit ich präziser werden kann.");
   }
-  lines.push("Sag mir gerne noch Budget oder Einsatz (Stadt, Offroad, Familien), dann verfeinere ich.");
+  if (uiHealth.render_text_only) {
+    lines.push("Visuelle Elemente sind reduziert, bis die UI wieder stabil ist.");
+  }
   return lines.join(" ").trim();
 };
 
@@ -190,8 +112,10 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       history: null,
       intent: null,
       route: null,
-      jeepResults: null,
-      validatedJeepResults: null,
+      entities: null,
+      offers: null,
+      content_state: null,
+      ui_health: null,
       uiState: null,
       clientEvents: null,
       uiRecovery: null,
@@ -214,80 +138,94 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
     return { intent, ...withLog(state, { agent: "intentParser", input: { message: state.userMessage, uiState: state.uiState } as Record<string, unknown>, output: intent as Record<string, unknown> }) };
   });
 
-  graph.addNode("routerNode", async (state: GraphState) => {
-    const route = buildRoute(state.intent?.intent || "unknown", state.intent?.brand || "", state.uiState || aggregateClientEvents());
-    collector?.recordNode({ name: "router", input: { intent: state.intent, uiState: state.uiState } as Record<string, unknown>, output: route as unknown as Record<string, unknown> });
-    return { route, ...withLog(state, { agent: "router", input: { intent: state.intent, uiState: state.uiState } as Record<string, unknown>, output: route as unknown as Record<string, unknown> }) };
+  graph.addNode("entityFetchNode", async (state: GraphState) => {
+    const entities = loadDemoEntities();
+    collector?.recordNode({ name: "entityFetch", input: {}, output: { entities } as Record<string, unknown> });
+    return { entities, ...withLog(state, { agent: "entityFetch", input: {}, output: { entities } as Record<string, unknown> }) };
   });
 
-  graph.addNode("jeepSearchNode", async (state: GraphState) => {
-    const route = state.route as any;
-    if (!route?.jeepFocus) {
-      collector?.recordNode({ name: "jeepSearch", input: {}, output: { skipped: true } });
-      return { jeepResults: [] };
-    }
-    const results = jeepSearch();
-    collector?.recordNode({ name: "jeepSearch", input: { brand: state.intent?.brand } as Record<string, unknown>, output: { models: results } as Record<string, unknown> });
-    return { jeepResults: results, ...withLog(state, { agent: "jeepSearch", input: { brand: state.intent?.brand } as Record<string, unknown>, output: { models: results } as Record<string, unknown> }) };
+  graph.addNode("routingNode", async (state: GraphState) => {
+    const needsClarification = state.intent?.intent === "needs_clarification";
+    const entityList = Array.isArray(state.entities) ? (state.entities as Record<string, unknown>[]) : [];
+    const offers = buildOffersFromEntities(entityList);
+    const decision = evaluateRouting(
+      {
+        intent: state.intent as any,
+        offerCount: offers.length,
+        needsClarification,
+      },
+      undefined,
+    );
+    collector?.recordNode({ name: "routing", input: { intent: state.intent, offers: offers.length } as Record<string, unknown>, output: decision as unknown as Record<string, unknown> });
+    return {
+      route: decision.route,
+      content_state: decision.content_state,
+      offers,
+      ...withLog(state, { agent: "routing", input: { intent: state.intent, offers: offers.length } as Record<string, unknown>, output: decision as unknown as Record<string, unknown> }),
+    };
   });
 
-  graph.addNode("groundingAndValidationNode", async (state: GraphState) => {
-    const validation = validateJeepResults((state.jeepResults as JeepModel[]) || [], state.uiState || aggregateClientEvents());
-    collector?.recordNode({ name: "groundingAndValidation", input: { jeepResults: state.jeepResults, uiState: state.uiState } as Record<string, unknown>, output: validation as unknown as Record<string, unknown> });
-    return { validatedJeepResults: validation, ...withLog(state, { agent: "groundingAndValidation", input: { jeepResults: state.jeepResults, uiState: state.uiState } as Record<string, unknown>, output: validation as unknown as Record<string, unknown> }) };
-  });
-
-  graph.addNode("errorRecoveryNodeUI", async (state: GraphState) => {
-    const recovery = buildRecovery(state.validatedJeepResults as JeepValidationResult, state.uiState || aggregateClientEvents());
-    collector?.recordNode({ name: "errorRecoveryUI", input: { validation: state.validatedJeepResults, uiState: state.uiState } as Record<string, unknown>, output: recovery as unknown as Record<string, unknown> });
-    return { uiRecovery: recovery, ...withLog(state, { agent: "errorRecoveryUI", input: { validation: state.validatedJeepResults, uiState: state.uiState } as Record<string, unknown>, output: recovery as unknown as Record<string, unknown> }) };
+  graph.addNode("uiHealthPolicyNode", async (state: GraphState) => {
+    const uiHealth = evaluateUiHealth(
+      {
+        uiState: state.uiState as UIState,
+        clientEvents: state.clientEvents as ClientEvent[],
+        agentFailures: 0,
+      },
+      undefined,
+    );
+    const uiRecovery = buildRecovery(uiHealth);
+    collector?.recordNode({ name: "uiHealth", input: { uiState: state.uiState, events: state.clientEvents } as Record<string, unknown>, output: uiHealth as unknown as Record<string, unknown> });
+    return {
+      ui_health: uiHealth,
+      uiRecovery,
+      ...withLog(state, { agent: "uiHealth", input: { uiState: state.uiState, events: state.clientEvents } as Record<string, unknown>, output: uiHealth as unknown as Record<string, unknown> }),
+    };
   });
 
   graph.addNode("clarificationNode", async (state: GraphState) => {
-    const route = state.route as any;
-    if (!route?.needsClarification) {
+    if (!state.content_state?.clarification_required) {
       collector?.recordNode({ name: "clarification", input: {}, output: { skipped: true } });
       return {};
     }
-    const reply = "Kurzer Check: Geht es dir um Jeep-Modelle? Teile Budget oder Einsatzgebiet (z.B. Stadt, Offroad).";
+    const reply = "Kurzer Check: Bitte gib mir noch Parameter oder Kontext, damit ich präziser liefern kann.";
     collector?.recordNode({ name: "clarification", input: { intent: state.intent } as Record<string, unknown>, output: { reply } as Record<string, unknown> });
-    return { response: { reply, followUp: "Ich helfe sofort, wenn du mehr Details gibst." }, content: { offers: [], visuals: [], definition: "" } };
+    return { response: { reply, followUp: "Sobald du ergänzt, gehe ich in den Normalmodus zurück." }, content: { offers: [], visuals: [], definition: "" } };
   });
 
   graph.addNode("responseNode", async (state: GraphState) => {
-    const validation = (state.validatedJeepResults as JeepValidationResult) || { models: [], issues: [], renderTextOnly: false };
-    const recovery = (state.uiRecovery as UIRecoveryInstruction) || { renderTextOnly: false, degradedMode: false, showBanner: false };
-    const reply = buildResponseText(validation, recovery, state.intent?.brand || "", Boolean(state.intent?.frustration));
-    const offers = buildOffersFromJeep(validation.models || []);
+    const uiHealth = (state.ui_health as UIHealth) || { degraded_mode: false, render_text_only: false, show_banner: false };
+    const content_state = (state.content_state as ContentState) || {
+      has_results: false,
+      num_results: 0,
+      clarification_required: false,
+      no_relevant_results: true,
+      fallback_used: false,
+      strict_matching: false,
+    };
+    const offers = (state.offers as any[]) || [];
+    const reply = buildResponseText(content_state, uiHealth, Boolean(state.intent?.frustration));
     const content = {
       offers,
-      visuals: recovery.renderTextOnly ? [] : offers.map((o) => o.image_url).filter(Boolean).slice(0, 6),
-      definition: "Jeep-Schnellüberblick",
-      offerDiagnostics: {
-        queryModels: offers.map((o) => o.model),
-        offroadRequired: true,
-        fallbackUsed: recovery.renderTextOnly,
-        noRelevantOffers: offers.length === 0,
-        strategy: recovery.renderTextOnly ? "text-only" : "standard",
-        failureCount: (state.uiState?.imageFailures || 0),
-        relevance: offers.map((o) => ({ model: o.model, isOffroadRelevant: true, isExactMatchToSuggestion: true, relevanceScore: 1 })),
-      },
+      visuals: uiHealth.render_text_only ? [] : offers.map((o) => o.image_url).filter(Boolean).slice(0, 6),
+      definition: "Generische Übersicht",
     };
-    collector?.recordNode({ name: "response", input: { validation, recovery } as Record<string, unknown>, output: { reply, followUp: "" } as Record<string, unknown> });
+    collector?.recordNode({ name: "response", input: { content_state, uiHealth } as Record<string, unknown>, output: { reply, followUp: "" } as Record<string, unknown> });
     return {
-      response: { reply, followUp: recovery.renderTextOnly ? "Ich bleibe im Textmodus, bis die Bilder wieder laufen." : "" },
+      response: { reply, followUp: uiHealth.render_text_only ? "Visuelle Elemente sind vorübergehend deaktiviert." : "" },
       content,
-      ...withLog(state, { agent: "response", input: { validation, recovery } as Record<string, unknown>, output: { reply, followUp: "" } as Record<string, unknown> }),
+      content_state,
+      ui_health: uiHealth,
+      ...withLog(state, { agent: "response", input: { content_state, uiHealth } as Record<string, unknown>, output: { reply, followUp: "" } as Record<string, unknown> }),
     };
   });
 
   graph.addEdge(START, "clientEventNode" as any);
   graph.addEdge("clientEventNode" as any, "intentParserNode" as any);
-  graph.addEdge("intentParserNode" as any, "routerNode" as any);
-  graph.addEdge("routerNode" as any, "jeepSearchNode" as any);
-  graph.addEdge("jeepSearchNode" as any, "groundingAndValidationNode" as any);
-  graph.addEdge("groundingAndValidationNode" as any, "errorRecoveryNodeUI" as any);
-  graph.addEdge("errorRecoveryNodeUI" as any, "clarificationNode" as any);
+  graph.addEdge("intentParserNode" as any, "entityFetchNode" as any);
+  graph.addEdge("entityFetchNode" as any, "routingNode" as any);
+  graph.addEdge("routingNode" as any, "uiHealthPolicyNode" as any);
+  graph.addEdge("uiHealthPolicyNode" as any, "clarificationNode" as any);
   graph.addEdge("clarificationNode" as any, "responseNode" as any);
   graph.addEdge("responseNode" as any, END);
 
