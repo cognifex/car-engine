@@ -31,6 +31,7 @@ export type GraphState = ConversationState &
     offersHistory?: { timestamp: string; items: string[]; intentType?: string; preferenceState: PreferenceConstraintStateData }[];
     conversationPlan?: string;
     gatingReason?: string;
+    lastReply?: string;
   };
 
 const withLog = (state: GraphState, entry: AgentLogEntry) => ({
@@ -117,17 +118,17 @@ const buildPlanHint = ({
   preferenceState?: PreferenceConstraintStateData;
 }) => {
   if (allowOffers) {
-    return "Plan: Ergebnisse kurz anreißen und bei Bedarf vertiefen.";
+    return "Plan: Ergebnisse kurz anreißen, dann auf Wunsch vertiefen.";
   }
   if (!structured) {
-    return "Plan: Erst ein, zwei Anforderungen klären (z.B. Nutzung, Budget), dann Ergebnisse zeigen.";
+    return "Plan: Zwei schnelle Fragen (Nutzung, Budget) klären, dann Treffer zeigen.";
   }
   if (intentType === INTENT_TYPES.KNOWLEDGE_SIGNAL || intentType === INTENT_TYPES.MODE_REQUEST || intentType === INTENT_TYPES.META_COMMUNICATION) {
     return "Plan: Geführtes Onboarding mit Rückfragen, bevor wir Angebote laden.";
   }
   const categories = (preferenceState?.product?.preferredCategories || []).slice(0, 2).join(", ");
   return categories
-    ? `Plan: Kurz bestätigen (${categories}) und erst danach Treffer zeigen.`
+    ? `Plan: Kurz bestätigen (${categories}) und danach Treffer zeigen.`
     : "Plan: Gespräch fokussieren, dann Ergebnisse liefern.";
 };
 
@@ -139,9 +140,6 @@ const buildResponseText = (
   lastUserMessage?: string,
 ) => {
   const lines: string[] = [];
-  if (lastUserMessage) {
-    lines.push(`Du sagst: "${lastUserMessage.trim()}"`);
-  }
   if (frustration) {
     lines.push("Sorry für die Reibung – ich halte es kurz und stabil.");
   }
@@ -313,9 +311,9 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       collector?.recordNode({ name: "clarification", input: {}, output: { skipped: true } });
       return {};
     }
-    const reply = "Kurzer Check: Bitte gib mir noch Parameter oder Kontext, damit ich präziser liefern kann.";
+    const reply = "Lass uns kurz klären: Nennung von Nutzung (Stadt/Langstrecke/Gelände) und grobes Budget reichen, dann starte ich direkt.";
     collector?.recordNode({ name: "clarification", input: { intent: state.intent } as Record<string, unknown>, output: { reply } as Record<string, unknown> });
-    return { response: { reply, followUp: "Sobald du ergänzt, gehe ich in den Normalmodus zurück." }, content: { offers: [], visuals: [], definition: "" } };
+    return { response: { reply, followUp: "Gib mir Nutzung + Budget, dann zeige ich sofort passende Beispiele." }, content: { offers: [], visuals: [], definition: "" } };
   });
 
   graph.addNode("responseNode", async (state: GraphState) => {
@@ -343,13 +341,28 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
     const offersHistory = history.snapshot();
     const planHint = state.conversationPlan as string | undefined;
     const reflectionSummary = loadReflectionSummary();
-    const reply = buildResponseText(
+    let reply = buildResponseText(
       content_state,
       uiHealth,
       Boolean(state.intent?.frustration),
       planHint || reflectionSummary,
       state.userMessage as string,
     );
+    if (state.lastReply && reply === state.lastReply) {
+      reply = `${reply} Lass uns diesmal einen anderen Ansatz wählen: Ich stelle dir zwei präzise Fragen oder schlage Alternativen vor.`;
+    }
+    if (!content_state.has_results || content_state.no_relevant_results || content_state.clarification_required) {
+      const questions = [];
+      if (!(state.preferenceState as PreferenceConstraintStateData)?.product?.useCases?.length) {
+        questions.push("Wofür nutzt du das Fahrzeug am meisten (Stadt, Langstrecke, Gelände)?");
+      }
+      if (!(state.preferenceState as PreferenceConstraintStateData)?.product?.budget) {
+        questions.push("Gibt es ein Budget, das ich berücksichtigen soll?");
+      }
+      if (questions.length) {
+        reply = `${reply} ${questions.slice(0, 2).join(" ")}`;
+      }
+    }
     const content = {
       offers,
       visuals: uiHealth.render_text_only ? [] : offers.map((o) => o.image_url).filter(Boolean).slice(0, 6),
@@ -362,6 +375,7 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       offersHistory,
       content_state,
       ui_health: uiHealth,
+      lastReply: reply,
       ...withLog(state, { agent: "response", input: { content_state, uiHealth } as Record<string, unknown>, output: { reply, followUp: "" } as Record<string, unknown> }),
     };
   });

@@ -260,4 +260,5 @@ export interface ConversationState extends Record<string, unknown> {
   ui_health?: UIHealth;
   preferenceState?: Record<string, unknown>;
   offersHistory?: Record<string, unknown>[];
+  lastReply?: string;
 }
