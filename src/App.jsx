@@ -171,26 +171,16 @@ export default function AutoMatchPrototype() {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportSession = () => {
-    const payload = {
-      sessionId,
-      messages,
-      offersHistory,
-      agentLog,
-      lastUpdate: new Date().toISOString(),
-    };
-    exportJson(payload, `session-${sessionId || "unknown"}.json`);
-  };
-
-  const handleExportArchitecture = async () => {
+  const handleExportAdminDump = async () => {
+    if (!sessionId) return;
     try {
-      const res = await fetch(`/api/agent-architecture${sessionId ? `?sessionId=${sessionId}` : ""}`);
+      const res = await fetch(`/api/session-dump/${sessionId}`);
       if (!res.ok) throw new Error('failed');
       const data = await res.json();
-      const name = sessionId ? `agent-architecture-${sessionId}.json` : 'agent-architecture.json';
-      exportJson(data, name);
+      const dump = data.dump || data;
+      exportJson(dump, `admin-dump-${sessionId}.json`);
     } catch (err) {
-      console.error('Failed to export architecture', err);
+      console.error('Failed to export admin dump', err);
     }
   };
 
@@ -307,8 +297,7 @@ export default function AutoMatchPrototype() {
           <div className="bg-white border border-gray-200 rounded-lg p-3 text-sm text-gray-700 mb-2">
             <div className="font-semibold text-gray-800 mb-1">Agenten-Log (Session {sessionId})</div>
             <div className="flex gap-2 mb-2 text-xs">
-              <button onClick={handleExportSession} className="px-2 py-1 bg-gray-100 border rounded hover:bg-gray-200">Session-Export</button>
-              <button onClick={handleExportArchitecture} className="px-2 py-1 bg-gray-100 border rounded hover:bg-gray-200">Architektur-Export</button>
+              <button onClick={handleExportAdminDump} className="px-2 py-1 bg-gray-100 border rounded hover:bg-gray-200">Admin-Dump exportieren</button>
             </div>
             <div className="text-xs text-gray-600 max-h-40 overflow-y-auto space-y-2">
               {agentLog.length === 0 && <div className="text-gray-400">Noch keine Log-Einträge.</div>}
