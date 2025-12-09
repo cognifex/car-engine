@@ -21,7 +21,7 @@ UUID=$(echo "$ZIPFILE" | sed -E 's/deploy_dump_(.*)\.zip/\1/')
 EXTRACT_DIR="$DUMP_DIR/$UUID"
 mkdir -p "$EXTRACT_DIR"
 
-echo "[INFO] Neuer Dump erkannt: $ZIPFILE"
+echo "[INFO] Neuer Deploy-Dump erkannt: $ZIPFILE"
 
 # Unzip
 unzip -o "$DUMP_DIR/$ZIPFILE" -d "$EXTRACT_DIR"
