@@ -42,11 +42,16 @@ jobs:
             echo OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} > /opt/car-engine/.env
           "
 
-      - name: Deploy via SSH
+      - name: Prepare log folder
+        run: mkdir -p logs
+
+      - name: Deploy via SSH (capture log)
+        id: deploy
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_USER: ${{ secrets.VPS_USER }}
         run: |
+          set -o pipefail
           ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST '
             set -euo pipefail
             cd /opt/car-engine
@@ -56,17 +61,8 @@ jobs:
             docker compose down
             docker compose up -d --build
             docker image prune -f
-          '
-
-      - name: Create deploy log folder
-        if: always()
-        run: mkdir -p logs
-
-      - name: Capture Docker logs
-        if: always()
-        run: |
-          journalctl -u docker --no-pager -n 300 > logs/deploy.log \
-          || echo "No docker logs" > logs/deploy.log
+          ' | tee logs/deploy.log
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
 
       - name: Upload deploy log
         if: always()
@@ -79,6 +75,10 @@ jobs:
       # - name: Trigger Deploy Recovery Workflow
       #   if: failure()
       #   ...
+
+      - name: Mark job failed if deploy failed
+        if: steps.deploy.outputs.exit_code != '0'
+        run: exit 1
 
       - name: Reset fail counter on success
         if: success()
