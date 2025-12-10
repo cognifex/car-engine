@@ -1,0 +1,1452 @@
+{
+  "metadata": {
+    "sessionId": "sess-1765327829443",
+    "startedAt": "2025-12-10T00:50:29.443Z",
+    "completedAt": "2025-12-10T00:50:29.517Z",
+    "modelId": "graph-catalog",
+    "redacted": false
+  },
+  "conversation": [
+    {
+      "id": "turn-1-user",
+      "role": "user",
+      "text": "zeige jeep modelle",
+      "timestamp": "2025-12-10T00:50:29.448Z"
+    },
+    {
+      "id": "turn-1-assistant",
+      "role": "assistant",
+      "text": "Hab dir 10 Modelle hingelegt – locker zum Durchscrollen. Sag mir gern, wenn ich etwas anders priorisieren soll.",
+      "timestamp": "2025-12-10T00:50:29.517Z"
+    },
+    {
+      "id": "turn-1-followup",
+      "role": "assistant",
+      "text": "Soll ich eher günstig bleiben oder nach Marke sortieren?",
+      "timestamp": "2025-12-10T00:50:29.517Z"
+    }
+  ],
+  "turns": [
+    {
+      "turnId": "turn-1",
+      "startedAt": "2025-12-10T00:50:29.448Z",
+      "endedAt": "2025-12-10T00:50:29.517Z",
+      "userMessage": "zeige jeep modelle",
+      "reply": "Hab dir 10 Modelle hingelegt – locker zum Durchscrollen. Sag mir gern, wenn ich etwas anders priorisieren soll.",
+      "followUp": "Soll ich eher günstig bleiben oder nach Marke sortieren?",
+      "nodes": [
+        {
+          "name": "memoryBootstrap",
+          "input": {
+            "history": []
+          },
+          "output": {
+            "shortTerm": {
+              "messages": [],
+              "maxItems": 12,
+              "lastUpdated": "2025-12-10T00:50:29.443Z"
+            },
+            "working": {
+              "product": {
+                "preferredCategories": [],
+                "excludedCategories": [],
+                "preferredAttributes": [],
+                "excludedAttributes": [],
+                "useCases": []
+              },
+              "conversation": {},
+              "style": {},
+              "carProfile": {
+                "budget_level": "flexible",
+                "usage_pattern": "mixed",
+                "size_preference": "no_preference",
+                "design_vibe": [],
+                "comfort_importance": "medium",
+                "tech_importance": "medium",
+                "risk_profile": "balanced",
+                "explicit_brands_likes": [],
+                "explicit_brands_dislikes": [],
+                "deal_breakers": []
+              },
+              "filters": {}
+            },
+            "longTerm": {
+              "reflections": [],
+              "personaAdjustments": [],
+              "frustrationCount": 0,
+              "lastPlan": "",
+              "lastUiHealthNote": ""
+            }
+          },
+          "startedAt": "2025-12-10T00:50:29.465Z",
+          "endedAt": "2025-12-10T00:50:29.465Z",
+          "durationMs": 0
+        },
+        {
+          "name": "clientEvent",
+          "input": {
+            "events": []
+          },
+          "output": {
+            "imageFailures": 0,
+            "failedModels": [],
+            "networkChanged": false,
+            "resultsNotVisible": false
+          },
+          "startedAt": "2025-12-10T00:50:29.468Z",
+          "endedAt": "2025-12-10T00:50:29.468Z",
+          "durationMs": 0
+        },
+        {
+          "name": "intentParser",
+          "input": {
+            "message": "zeige jeep modelle",
+            "uiState": {
+              "imageFailures": 0,
+              "failedModels": [],
+              "networkChanged": false,
+              "resultsNotVisible": false
+            }
+          },
+          "output": {
+            "intent": "preference_change",
+            "frustration": false,
+            "preferenceSignals": {
+              "product": {
+                "preferredCategories": [
+                  "jeep modelle"
+                ],
+                "excludedCategories": [],
+                "preferredAttributes": [],
+                "excludedAttributes": [],
+                "useCases": []
+              },
+              "conversation": {},
+              "style": {},
+              "carProfile": {
+                "budget_level": "flexible",
+                "usage_pattern": "mixed",
+                "size_preference": "no_preference",
+                "design_vibe": [],
+                "comfort_importance": "medium",
+                "tech_importance": "medium",
+                "risk_profile": "balanced",
+                "explicit_brands_likes": [],
+                "explicit_brands_dislikes": [],
+                "deal_breakers": []
+              }
+            },
+            "confidence": 0.78
+          },
+          "startedAt": "2025-12-10T00:50:29.473Z",
+          "endedAt": "2025-12-10T00:50:29.473Z",
+          "durationMs": 0
+        },
+        {
+          "name": "planner",
+          "input": {
+            "intent": {
+              "intent": "preference_change",
+              "frustration": false,
+              "preferenceSignals": {
+                "product": {
+                  "preferredCategories": [
+                    "jeep modelle"
+                  ],
+                  "excludedCategories": [],
+                  "preferredAttributes": [],
+                  "excludedAttributes": [],
+                  "useCases": []
+                },
+                "conversation": {},
+                "style": {},
+                "carProfile": {
+                  "budget_level": "flexible",
+                  "usage_pattern": "mixed",
+                  "size_preference": "no_preference",
+                  "design_vibe": [],
+                  "comfort_importance": "medium",
+                  "tech_importance": "medium",
+                  "risk_profile": "balanced",
+                  "explicit_brands_likes": [],
+                  "explicit_brands_dislikes": [],
+                  "deal_breakers": []
+                }
+              },
+              "confidence": 0.78
+            },
+            "preferenceState": {
+              "product": {
+                "preferredCategories": [
+                  "jeep modelle"
+                ],
+                "excludedCategories": [],
+                "preferredAttributes": [],
+                "excludedAttributes": [],
+                "useCases": []
+              },
+              "conversation": {},
+              "style": {
+                "vibe": []
+              },
+              "carProfile": {
+                "budget_level": "flexible",
+                "usage_pattern": "mixed",
+                "size_preference": "no_preference",
+                "design_vibe": [],
+                "comfort_importance": "medium",
+                "tech_importance": "medium",
+                "risk_profile": "balanced",
+                "explicit_brands_likes": [],
+                "explicit_brands_dislikes": [],
+                "deal_breakers": []
+              },
+              "filters": {}
+            }
+          },
+          "output": {
+            "plan": [
+              {
+                "id": "intent-parse",
+                "description": "Verstehe Absicht und Stimmung",
+                "agent": "intent",
+                "required": true
+              },
+              {
+                "id": "planner",
+                "description": "Bestimme die nächsten Schritte und UX-Modus",
+                "agent": "planner",
+                "required": true
+              },
+              {
+                "id": "tooling",
+                "description": "Generiere/Filtern Angebote und Visuals",
+                "agent": "tool",
+                "required": true
+              },
+              {
+                "id": "evaluator",
+                "description": "Qualität/UX/Frust prüfen",
+                "agent": "evaluator",
+                "required": true
+              },
+              {
+                "id": "front",
+                "description": "Antwort im freundlichen Ton liefern",
+                "agent": "front",
+                "required": true
+              }
+            ],
+            "allowOffers": true,
+            "needsClarification": false,
+            "structured": true,
+            "planHint": "Plan: Ergebnisse kurz anreißen, dann auf Wunsch vertiefen."
+          },
+          "startedAt": "2025-12-10T00:50:29.475Z",
+          "endedAt": "2025-12-10T00:50:29.475Z",
+          "durationMs": 0
+        },
+        {
+          "name": "execution",
+          "input": {
+            "intent": {
+              "intent": "preference_change",
+              "frustration": false,
+              "preferenceSignals": {
+                "product": {
+                  "preferredCategories": [
+                    "jeep modelle"
+                  ],
+                  "excludedCategories": [],
+                  "preferredAttributes": [],
+                  "excludedAttributes": [],
+                  "useCases": []
+                },
+                "conversation": {},
+                "style": {},
+                "carProfile": {
+                  "budget_level": "flexible",
+                  "usage_pattern": "mixed",
+                  "size_preference": "no_preference",
+                  "design_vibe": [],
+                  "comfort_importance": "medium",
+                  "tech_importance": "medium",
+                  "risk_profile": "balanced",
+                  "explicit_brands_likes": [],
+                  "explicit_brands_dislikes": [],
+                  "deal_breakers": []
+                }
+              },
+              "confidence": 0.78
+            },
+            "preferenceState": {
+              "product": {
+                "preferredCategories": [
+                  "jeep modelle"
+                ],
+                "excludedCategories": [],
+                "preferredAttributes": [],
+                "excludedAttributes": [],
+                "useCases": []
+              },
+              "conversation": {},
+              "style": {
+                "vibe": []
+              },
+              "carProfile": {
+                "budget_level": "flexible",
+                "usage_pattern": "mixed",
+                "size_preference": "no_preference",
+                "design_vibe": [],
+                "comfort_importance": "medium",
+                "tech_importance": "medium",
+                "risk_profile": "balanced",
+                "explicit_brands_likes": [],
+                "explicit_brands_dislikes": [],
+                "deal_breakers": []
+              },
+              "filters": {}
+            }
+          },
+          "output": {
+            "offers": 10,
+            "content_state": {
+              "has_results": true,
+              "num_results": 10,
+              "clarification_required": false,
+              "no_relevant_results": false,
+              "fallback_used": false,
+              "strict_matching": true,
+              "notes": [],
+              "repeat_with_changed_constraints": false
+            }
+          },
+          "startedAt": "2025-12-10T00:50:29.496Z",
+          "endedAt": "2025-12-10T00:50:29.496Z",
+          "durationMs": 0
+        },
+        {
+          "name": "uiHealth",
+          "input": {
+            "uiState": {
+              "imageFailures": 0,
+              "failedModels": [],
+              "networkChanged": false,
+              "resultsNotVisible": false
+            },
+            "events": []
+          },
+          "output": {
+            "degraded_mode": false,
+            "render_text_only": false,
+            "show_banner": false,
+            "severity": "info",
+            "signals": {
+              "imageFailures": 0,
+              "networkChanged": false,
+              "resultsNotVisible": false,
+              "agentFailures": 0
+            }
+          },
+          "startedAt": "2025-12-10T00:50:29.499Z",
+          "endedAt": "2025-12-10T00:50:29.499Z",
+          "durationMs": 0
+        },
+        {
+          "name": "evaluation",
+          "input": {
+            "content_state": {
+              "has_results": true,
+              "num_results": 10,
+              "clarification_required": false,
+              "no_relevant_results": false,
+              "fallback_used": false,
+              "strict_matching": true,
+              "notes": [],
+              "repeat_with_changed_constraints": false
+            },
+            "uiHealth": {
+              "degraded_mode": false,
+              "render_text_only": false,
+              "show_banner": false,
+              "severity": "info",
+              "signals": {
+                "imageFailures": 0,
+                "networkChanged": false,
+                "resultsNotVisible": false,
+                "agentFailures": 0
+              }
+            },
+            "frustration": false
+          },
+          "output": {
+            "severity": "info",
+            "notes": [],
+            "blockers": []
+          },
+          "startedAt": "2025-12-10T00:50:29.502Z",
+          "endedAt": "2025-12-10T00:50:29.502Z",
+          "durationMs": 0
+        },
+        {
+          "name": "response",
+          "input": {
+            "content_state": {
+              "has_results": true,
+              "num_results": 10,
+              "clarification_required": false,
+              "no_relevant_results": false,
+              "fallback_used": false,
+              "strict_matching": true,
+              "notes": [],
+              "repeat_with_changed_constraints": false
+            },
+            "uiHealth": {
+              "degraded_mode": false,
+              "render_text_only": false,
+              "show_banner": false,
+              "severity": "info",
+              "signals": {
+                "imageFailures": 0,
+                "networkChanged": false,
+                "resultsNotVisible": false,
+                "agentFailures": 0
+              }
+            }
+          },
+          "output": {
+            "reply": "Hab dir 10 Modelle hingelegt – locker zum Durchscrollen. Sag mir gern, wenn ich etwas anders priorisieren soll.",
+            "followUp": "Soll ich eher günstig bleiben oder nach Marke sortieren?"
+          },
+          "startedAt": "2025-12-10T00:50:29.505Z",
+          "endedAt": "2025-12-10T00:50:29.505Z",
+          "durationMs": 0
+        }
+      ],
+      "intent": {
+        "intent": "preference_change",
+        "frustration": false,
+        "preferenceSignals": {
+          "product": {
+            "preferredCategories": [
+              "jeep modelle"
+            ],
+            "excludedCategories": [],
+            "preferredAttributes": [],
+            "excludedAttributes": [],
+            "useCases": []
+          },
+          "conversation": {},
+          "style": {},
+          "carProfile": {
+            "budget_level": "flexible",
+            "usage_pattern": "mixed",
+            "size_preference": "no_preference",
+            "design_vibe": [],
+            "comfort_importance": "medium",
+            "tech_importance": "medium",
+            "risk_profile": "balanced",
+            "explicit_brands_likes": [],
+            "explicit_brands_dislikes": [],
+            "deal_breakers": []
+          }
+        },
+        "confidence": 0.78
+      },
+      "routing": {
+        "includeKnowledge": true,
+        "includeVisuals": true,
+        "includeMatching": true,
+        "includeOffers": true,
+        "strictOffers": true,
+        "retryMatching": false
+      },
+      "offers": [
+        {
+          "title": "Honda Civic V 4d 16 ESi",
+          "model": "Honda Civic V 4d 16 ESi",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7877/Honda-Civic-V-4d-16-ESi.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1299/w800_Honda-Civic-V-4d-6.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.495Z",
+          "vin": "honda-civic-v-4d-16-esi-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda Civic V 4d 16 VTi",
+          "model": "Honda Civic V 4d 16 VTi",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7876/Honda-Civic-V-4d-16-VTi.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1299/w800_Honda-Civic-V-4d-6.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.495Z",
+          "vin": "honda-civic-v-4d-16-vti-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda Civic VI 5d 14i",
+          "model": "Honda Civic VI 5d 14i",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7889/Honda-Civic-VI-5d-14i.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1300/w800_Honda-Civic-VI-5d-2.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.495Z",
+          "vin": "honda-civic-vi-5d-14i-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda Civic VI 5d 15i",
+          "model": "Honda Civic VI 5d 15i",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7883/Honda-Civic-VI-5d-15i.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1300/w800_Honda-Civic-VI-5d-2.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.495Z",
+          "vin": "honda-civic-vi-5d-15i-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda CR V III 20 i VTEC Luxury",
+          "model": "Honda CR V III 20 i VTEC Luxury",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/13412/Honda-CR-V-III-20-i-VTEC-Luxury.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1316/w800_Honda-CR-V-III-2.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • AWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.496Z",
+          "vin": "honda-cr-v-iii-20-i-vtec-luxury-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "AWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda CR V III 20 i VTEC Luxury Aut",
+          "model": "Honda CR V III 20 i VTEC Luxury Aut",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/9640/Honda-CR-V-III-20-i-VTEC-Luxury-Aut.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1316/w800_Honda-CR-V-III-2.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • AWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.496Z",
+          "vin": "honda-cr-v-iii-20-i-vtec-luxury-aut-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "AWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda CR V III 20 i VTEC S",
+          "model": "Honda CR V III 20 i VTEC S",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/10463/Honda-CR-V-III-20-i-VTEC-S.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1316/w800_Honda-CR-V-III-2.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • AWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.496Z",
+          "vin": "honda-cr-v-iii-20-i-vtec-s-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "AWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda HR V 3 Doors 16i 2WD",
+          "model": "Honda HR V 3 Doors 16i 2WD",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7944/Honda-HR-V-3-Doors-16i-2WD.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1317/w800_Honda-HR-V-3d-2.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.496Z",
+          "vin": "honda-hr-v-3-doors-16i-2wd-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Mazda 5 Luxury 20 146HP Aut",
+          "model": "Mazda 5 Luxury 20 146HP Aut",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Mazda/11239/Mazda-5-Luxury-20-146HP-Aut.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/mazda/259/default1.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.496Z",
+          "vin": "mazda-5-luxury-20-146hp-aut-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Mazda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "Geheimtipp: oft unterschätzt, aber robust im Alltag.",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": true
+        },
+        {
+          "title": "Mazda 5 Luxury 20 DISI iStop 150HP",
+          "model": "Mazda 5 Luxury 20 DISI iStop 150HP",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Mazda/11101/Mazda-5-Luxury-20-DISI-iStop-150HP.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/mazda/259/default1.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.496Z",
+          "vin": "mazda-5-luxury-20-disi-istop-150hp-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Mazda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "Geheimtipp: oft unterschätzt, aber robust im Alltag.",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": true
+        }
+      ],
+      "offersHistory": [],
+      "content": {
+        "offers": [
+          {
+            "title": "Honda Civic V 4d 16 ESi",
+            "model": "Honda Civic V 4d 16 ESi",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7877/Honda-Civic-V-4d-16-ESi.html",
+            "image_url": "https://www.ultimatespecs.com/cargallery/43/1299/w800_Honda-Civic-V-4d-6.jpg",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-10T00:50:29.495Z",
+            "vin": "honda-civic-v-4d-16-esi-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": "",
+            "why": "Honda",
+            "fit_reasons": [
+              "Solider Alltagsbegleiter ohne Starallüren.",
+              "Solider Alltagsbegleiter ohne Starallüren."
+            ],
+            "caution": "",
+            "tip": "",
+            "tags": [
+              "-",
+              "FWD",
+              "Benzin"
+            ],
+            "is_hidden_gem": false
+          },
+          {
+            "title": "Honda Civic V 4d 16 VTi",
+            "model": "Honda Civic V 4d 16 VTi",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7876/Honda-Civic-V-4d-16-VTi.html",
+            "image_url": "https://www.ultimatespecs.com/cargallery/43/1299/w800_Honda-Civic-V-4d-6.jpg",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-10T00:50:29.495Z",
+            "vin": "honda-civic-v-4d-16-vti-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": "",
+            "why": "Honda",
+            "fit_reasons": [
+              "Solider Alltagsbegleiter ohne Starallüren.",
+              "Solider Alltagsbegleiter ohne Starallüren."
+            ],
+            "caution": "",
+            "tip": "",
+            "tags": [
+              "-",
+              "FWD",
+              "Benzin"
+            ],
+            "is_hidden_gem": false
+          },
+          {
+            "title": "Honda Civic VI 5d 14i",
+            "model": "Honda Civic VI 5d 14i",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7889/Honda-Civic-VI-5d-14i.html",
+            "image_url": "https://www.ultimatespecs.com/cargallery/43/1300/w800_Honda-Civic-VI-5d-2.jpg",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-10T00:50:29.495Z",
+            "vin": "honda-civic-vi-5d-14i-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": "",
+            "why": "Honda",
+            "fit_reasons": [
+              "Solider Alltagsbegleiter ohne Starallüren.",
+              "Solider Alltagsbegleiter ohne Starallüren."
+            ],
+            "caution": "",
+            "tip": "",
+            "tags": [
+              "-",
+              "FWD",
+              "Benzin"
+            ],
+            "is_hidden_gem": false
+          },
+          {
+            "title": "Honda Civic VI 5d 15i",
+            "model": "Honda Civic VI 5d 15i",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7883/Honda-Civic-VI-5d-15i.html",
+            "image_url": "https://www.ultimatespecs.com/cargallery/43/1300/w800_Honda-Civic-VI-5d-2.jpg",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-10T00:50:29.495Z",
+            "vin": "honda-civic-vi-5d-15i-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": "",
+            "why": "Honda",
+            "fit_reasons": [
+              "Solider Alltagsbegleiter ohne Starallüren.",
+              "Solider Alltagsbegleiter ohne Starallüren."
+            ],
+            "caution": "",
+            "tip": "",
+            "tags": [
+              "-",
+              "FWD",
+              "Benzin"
+            ],
+            "is_hidden_gem": false
+          },
+          {
+            "title": "Honda CR V III 20 i VTEC Luxury",
+            "model": "Honda CR V III 20 i VTEC Luxury",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/13412/Honda-CR-V-III-20-i-VTEC-Luxury.html",
+            "image_url": "https://www.ultimatespecs.com/cargallery/43/1316/w800_Honda-CR-V-III-2.jpg",
+            "location": "",
+            "mileage": "",
+            "badge": "- • AWD • Benzin",
+            "created_at": "2025-12-10T00:50:29.496Z",
+            "vin": "honda-cr-v-iii-20-i-vtec-luxury-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": "",
+            "why": "Honda",
+            "fit_reasons": [
+              "Solider Alltagsbegleiter ohne Starallüren.",
+              "Solider Alltagsbegleiter ohne Starallüren."
+            ],
+            "caution": "",
+            "tip": "",
+            "tags": [
+              "-",
+              "AWD",
+              "Benzin"
+            ],
+            "is_hidden_gem": false
+          },
+          {
+            "title": "Honda CR V III 20 i VTEC Luxury Aut",
+            "model": "Honda CR V III 20 i VTEC Luxury Aut",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/9640/Honda-CR-V-III-20-i-VTEC-Luxury-Aut.html",
+            "image_url": "https://www.ultimatespecs.com/cargallery/43/1316/w800_Honda-CR-V-III-2.jpg",
+            "location": "",
+            "mileage": "",
+            "badge": "- • AWD • Benzin",
+            "created_at": "2025-12-10T00:50:29.496Z",
+            "vin": "honda-cr-v-iii-20-i-vtec-luxury-aut-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": "",
+            "why": "Honda",
+            "fit_reasons": [
+              "Solider Alltagsbegleiter ohne Starallüren.",
+              "Solider Alltagsbegleiter ohne Starallüren."
+            ],
+            "caution": "",
+            "tip": "",
+            "tags": [
+              "-",
+              "AWD",
+              "Benzin"
+            ],
+            "is_hidden_gem": false
+          },
+          {
+            "title": "Honda CR V III 20 i VTEC S",
+            "model": "Honda CR V III 20 i VTEC S",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/10463/Honda-CR-V-III-20-i-VTEC-S.html",
+            "image_url": "https://www.ultimatespecs.com/cargallery/43/1316/w800_Honda-CR-V-III-2.jpg",
+            "location": "",
+            "mileage": "",
+            "badge": "- • AWD • Benzin",
+            "created_at": "2025-12-10T00:50:29.496Z",
+            "vin": "honda-cr-v-iii-20-i-vtec-s-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": "",
+            "why": "Honda",
+            "fit_reasons": [
+              "Solider Alltagsbegleiter ohne Starallüren.",
+              "Solider Alltagsbegleiter ohne Starallüren."
+            ],
+            "caution": "",
+            "tip": "",
+            "tags": [
+              "-",
+              "AWD",
+              "Benzin"
+            ],
+            "is_hidden_gem": false
+          },
+          {
+            "title": "Honda HR V 3 Doors 16i 2WD",
+            "model": "Honda HR V 3 Doors 16i 2WD",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7944/Honda-HR-V-3-Doors-16i-2WD.html",
+            "image_url": "https://www.ultimatespecs.com/cargallery/43/1317/w800_Honda-HR-V-3d-2.jpg",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-10T00:50:29.496Z",
+            "vin": "honda-hr-v-3-doors-16i-2wd-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": "",
+            "why": "Honda",
+            "fit_reasons": [
+              "Solider Alltagsbegleiter ohne Starallüren.",
+              "Solider Alltagsbegleiter ohne Starallüren."
+            ],
+            "caution": "",
+            "tip": "",
+            "tags": [
+              "-",
+              "FWD",
+              "Benzin"
+            ],
+            "is_hidden_gem": false
+          },
+          {
+            "title": "Mazda 5 Luxury 20 146HP Aut",
+            "model": "Mazda 5 Luxury 20 146HP Aut",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Mazda/11239/Mazda-5-Luxury-20-146HP-Aut.html",
+            "image_url": "https://www.ultimatespecs.com/cargallery/mazda/259/default1.jpg",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-10T00:50:29.496Z",
+            "vin": "mazda-5-luxury-20-146hp-aut-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": "",
+            "why": "Mazda",
+            "fit_reasons": [
+              "Solider Alltagsbegleiter ohne Starallüren.",
+              "Solider Alltagsbegleiter ohne Starallüren."
+            ],
+            "caution": "",
+            "tip": "Geheimtipp: oft unterschätzt, aber robust im Alltag.",
+            "tags": [
+              "-",
+              "FWD",
+              "Benzin"
+            ],
+            "is_hidden_gem": true
+          },
+          {
+            "title": "Mazda 5 Luxury 20 DISI iStop 150HP",
+            "model": "Mazda 5 Luxury 20 DISI iStop 150HP",
+            "price": 0,
+            "dealer": "Katalog",
+            "link": "https://www.ultimatespecs.com/de/car-specs/Mazda/11101/Mazda-5-Luxury-20-DISI-iStop-150HP.html",
+            "image_url": "https://www.ultimatespecs.com/cargallery/mazda/259/default1.jpg",
+            "location": "",
+            "mileage": "",
+            "badge": "- • FWD • Benzin",
+            "created_at": "2025-12-10T00:50:29.496Z",
+            "vin": "mazda-5-luxury-20-disi-istop-150hp-",
+            "isOffroadRelevant": false,
+            "isExactMatchToSuggestion": true,
+            "relevanceScore": 1,
+            "source": "spec-catalog",
+            "fallbackReason": "",
+            "why": "Mazda",
+            "fit_reasons": [
+              "Solider Alltagsbegleiter ohne Starallüren.",
+              "Solider Alltagsbegleiter ohne Starallüren."
+            ],
+            "caution": "",
+            "tip": "Geheimtipp: oft unterschätzt, aber robust im Alltag.",
+            "tags": [
+              "-",
+              "FWD",
+              "Benzin"
+            ],
+            "is_hidden_gem": true
+          }
+        ],
+        "visuals": [
+          "https://www.ultimatespecs.com/cargallery/43/1299/w800_Honda-Civic-V-4d-6.jpg",
+          "https://www.ultimatespecs.com/cargallery/43/1299/w800_Honda-Civic-V-4d-6.jpg",
+          "https://www.ultimatespecs.com/cargallery/43/1300/w800_Honda-Civic-VI-5d-2.jpg",
+          "https://www.ultimatespecs.com/cargallery/43/1300/w800_Honda-Civic-VI-5d-2.jpg",
+          "https://www.ultimatespecs.com/cargallery/43/1316/w800_Honda-CR-V-III-2.jpg",
+          "https://www.ultimatespecs.com/cargallery/43/1316/w800_Honda-CR-V-III-2.jpg"
+        ],
+        "definition": "Generische Übersicht",
+        "user_profile": {
+          "budget_level": "flexible",
+          "usage_pattern": "mixed",
+          "size_preference": "no_preference",
+          "design_vibe": [],
+          "comfort_importance": "medium",
+          "tech_importance": "medium",
+          "risk_profile": "balanced",
+          "explicit_brands_likes": [],
+          "explicit_brands_dislikes": [],
+          "deal_breakers": []
+        }
+      },
+      "uiPresentedOffers": [
+        {
+          "title": "Honda Civic V 4d 16 ESi",
+          "model": "Honda Civic V 4d 16 ESi",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7877/Honda-Civic-V-4d-16-ESi.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1299/w800_Honda-Civic-V-4d-6.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.495Z",
+          "vin": "honda-civic-v-4d-16-esi-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda Civic V 4d 16 VTi",
+          "model": "Honda Civic V 4d 16 VTi",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7876/Honda-Civic-V-4d-16-VTi.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1299/w800_Honda-Civic-V-4d-6.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.495Z",
+          "vin": "honda-civic-v-4d-16-vti-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda Civic VI 5d 14i",
+          "model": "Honda Civic VI 5d 14i",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7889/Honda-Civic-VI-5d-14i.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1300/w800_Honda-Civic-VI-5d-2.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.495Z",
+          "vin": "honda-civic-vi-5d-14i-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda Civic VI 5d 15i",
+          "model": "Honda Civic VI 5d 15i",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7883/Honda-Civic-VI-5d-15i.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1300/w800_Honda-Civic-VI-5d-2.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.495Z",
+          "vin": "honda-civic-vi-5d-15i-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda CR V III 20 i VTEC Luxury",
+          "model": "Honda CR V III 20 i VTEC Luxury",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/13412/Honda-CR-V-III-20-i-VTEC-Luxury.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1316/w800_Honda-CR-V-III-2.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • AWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.496Z",
+          "vin": "honda-cr-v-iii-20-i-vtec-luxury-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "AWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda CR V III 20 i VTEC Luxury Aut",
+          "model": "Honda CR V III 20 i VTEC Luxury Aut",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/9640/Honda-CR-V-III-20-i-VTEC-Luxury-Aut.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1316/w800_Honda-CR-V-III-2.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • AWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.496Z",
+          "vin": "honda-cr-v-iii-20-i-vtec-luxury-aut-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "AWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda CR V III 20 i VTEC S",
+          "model": "Honda CR V III 20 i VTEC S",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/10463/Honda-CR-V-III-20-i-VTEC-S.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1316/w800_Honda-CR-V-III-2.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • AWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.496Z",
+          "vin": "honda-cr-v-iii-20-i-vtec-s-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "AWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Honda HR V 3 Doors 16i 2WD",
+          "model": "Honda HR V 3 Doors 16i 2WD",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Honda/7944/Honda-HR-V-3-Doors-16i-2WD.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/43/1317/w800_Honda-HR-V-3d-2.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.496Z",
+          "vin": "honda-hr-v-3-doors-16i-2wd-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Honda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": false
+        },
+        {
+          "title": "Mazda 5 Luxury 20 146HP Aut",
+          "model": "Mazda 5 Luxury 20 146HP Aut",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Mazda/11239/Mazda-5-Luxury-20-146HP-Aut.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/mazda/259/default1.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.496Z",
+          "vin": "mazda-5-luxury-20-146hp-aut-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Mazda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "Geheimtipp: oft unterschätzt, aber robust im Alltag.",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": true
+        },
+        {
+          "title": "Mazda 5 Luxury 20 DISI iStop 150HP",
+          "model": "Mazda 5 Luxury 20 DISI iStop 150HP",
+          "price": 0,
+          "dealer": "Katalog",
+          "link": "https://www.ultimatespecs.com/de/car-specs/Mazda/11101/Mazda-5-Luxury-20-DISI-iStop-150HP.html",
+          "image_url": "https://www.ultimatespecs.com/cargallery/mazda/259/default1.jpg",
+          "location": "",
+          "mileage": "",
+          "badge": "- • FWD • Benzin",
+          "created_at": "2025-12-10T00:50:29.496Z",
+          "vin": "mazda-5-luxury-20-disi-istop-150hp-",
+          "isOffroadRelevant": false,
+          "isExactMatchToSuggestion": true,
+          "relevanceScore": 1,
+          "source": "spec-catalog",
+          "fallbackReason": "",
+          "why": "Mazda",
+          "fit_reasons": [
+            "Solider Alltagsbegleiter ohne Starallüren.",
+            "Solider Alltagsbegleiter ohne Starallüren."
+          ],
+          "caution": "",
+          "tip": "Geheimtipp: oft unterschätzt, aber robust im Alltag.",
+          "tags": [
+            "-",
+            "FWD",
+            "Benzin"
+          ],
+          "is_hidden_gem": true
+        }
+      ],
+      "semanticallyFocusedModels": [
+        "Honda Civic V 4d 16 ESi",
+        "Honda Civic V 4d 16 VTi",
+        "Honda Civic VI 5d 14i",
+        "Honda Civic VI 5d 15i",
+        "Honda CR V III 20 i VTEC Luxury",
+        "Honda CR V III 20 i VTEC Luxury Aut",
+        "Honda CR V III 20 i VTEC S",
+        "Honda HR V 3 Doors 16i 2WD",
+        "Mazda 5 Luxury 20 146HP Aut",
+        "Mazda 5 Luxury 20 DISI iStop 150HP"
+      ],
+      "clientEvents": [],
+      "uiState": {
+        "imageFailures": 0,
+        "failedModels": [],
+        "networkChanged": false,
+        "resultsNotVisible": false
+      },
+      "uiRecovery": {
+        "renderTextOnly": false,
+        "degradedMode": false,
+        "showBanner": false
+      }
+    }
+  ],
+  "errors": [],
+  "clientEvents": []
+}

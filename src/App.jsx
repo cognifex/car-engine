@@ -722,7 +722,7 @@ export default function AutoMatchPrototype() {
 
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 md:px-6 py-4 md:py-6 gap-4 grid md:grid-cols-[1.1fr_0.9fr] lg:grid-cols-[1fr_1fr]">
         {/* Chat & Input */}
-        <section className={`${activeSection !== 'chat' ? 'hidden md:flex' : 'flex'} flex-col rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden`}>
+        <section className={`${activeSection !== 'chat' ? 'hidden md:flex' : 'flex'} flex-col rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden md:h-[calc(100vh-160px)]`}>
           <div className="px-4 py-3 border-b bg-gradient-to-r from-blue-50 to-white">
             <div className="text-sm font-semibold text-gray-900">Chat</div>
             <div className="text-[12px] text-gray-500">Frage stellen, Wünsche teilen, sofort Feedback</div>
@@ -769,8 +769,8 @@ export default function AutoMatchPrototype() {
         </section>
 
         {/* Offers, Favorites & Logs */}
-        <section className={`${!['offers', 'favorites', 'logs'].includes(activeSection) ? 'hidden md:flex' : 'flex'} flex-col gap-3`}>
-          <div ref={offersRef} className={`${activeSection !== 'offers' ? 'hidden md:block' : 'block'} rounded-2xl bg-white border border-gray-100 shadow-sm p-4`}>
+        <section className={`${!['offers', 'favorites', 'logs'].includes(activeSection) ? 'hidden md:flex' : 'flex'} flex-col gap-3 md:h-[calc(100vh-160px)] md:overflow-hidden`}>
+          <div ref={offersRef} className={`${activeSection !== 'offers' ? 'hidden md:block' : 'block'} rounded-2xl bg-white border border-gray-100 shadow-sm p-4 md:max-h-[calc(100vh-220px)] md:overflow-y-auto`}>
             <div className="flex items-center justify-between mb-2">
               <div>
                 <h2 className="text-base font-semibold text-gray-900">Live-Angebote</h2>
@@ -848,7 +848,7 @@ export default function AutoMatchPrototype() {
             </>
           </div>
 
-          <div className={`${activeSection !== 'favorites' ? 'hidden md:block' : 'block'} rounded-2xl bg-white border border-gray-100 shadow-sm p-4`}>
+          <div className={`${activeSection !== 'favorites' ? 'hidden md:block' : 'block'} rounded-2xl bg-white border border-gray-100 shadow-sm p-4 md:max-h-[calc(100vh-220px)] md:overflow-y-auto`}>
             <div className="flex items-center justify-between mb-2">
               <div>
                 <h2 className="text-base font-semibold text-gray-900">Deine Favoriten</h2>
