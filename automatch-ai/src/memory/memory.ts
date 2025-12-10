@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { ConversationMessage } from "../utils/types.js";
-import { PreferenceConstraintStateData } from "../utils/preferences.js";
+import { PreferenceConstraintStateData, defaultCarProfile } from "../utils/preferences.js";
 
 export type ShortTermMemory = {
   messages: ConversationMessage[];
@@ -34,6 +34,7 @@ const defaultWorking = (): PreferenceConstraintStateData => ({
   product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] },
   conversation: {},
   style: {},
+  carProfile: defaultCarProfile(),
   filters: {},
 });
 

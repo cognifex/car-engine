@@ -25,6 +25,7 @@ import {
   needsEntities,
   isSearchIntent,
   hasStructuredProductRequirement,
+  defaultCarProfile,
 } from "../utils/preferences.js";
 import { loadReflectionSummary, recordReflection } from "../utils/reflection.js";
 import { friendlyPersona, applyPersonaTone } from "../ux/persona.js";
@@ -86,6 +87,7 @@ const normalize = (val?: string) => (val || "").toLowerCase();
 
 const scoreSpec = (spec: ReturnType<typeof loadSpecs>[number], preferenceState?: PreferenceConstraintStateData) => {
   const product = preferenceState?.product || { preferredCategories: [], excludedCategories: [], useCases: [] };
+  const carProfile = preferenceState?.carProfile || defaultCarProfile();
   let score = 0;
   const normBrand = normalize(spec.brand);
   const normModel = normalize(spec.model);
@@ -100,6 +102,9 @@ const scoreSpec = (spec: ReturnType<typeof loadSpecs>[number], preferenceState?:
     score += 3;
   }
 
+  if (carProfile.explicit_brands_likes.map(normalize).includes(normBrand)) score += 2;
+  if (carProfile.explicit_brands_dislikes.map(normalize).includes(normBrand)) score -= 2;
+
   const useCases = (product.useCases || []).map(normalize);
   if (useCases.some((u) => ["gelände", "offroad"].includes(u))) {
     if (normDrive.includes("4x4") || normDrive.includes("awd") || normDrive.includes("allrad") || normBody.includes("suv") || normBody.includes("pickup")) {
@@ -108,19 +113,29 @@ const scoreSpec = (spec: ReturnType<typeof loadSpecs>[number], preferenceState?:
       score += 1;
     }
   }
-  if (useCases.some((u) => ["stadt", "stadtverkehr", "kurzstrecke"].includes(u))) {
+  if (useCases.some((u) => ["stadt", "stadtverkehr", "kurzstrecke"].includes(u)) || carProfile.usage_pattern === "city") {
     if (normBody.includes("hatch") || normBody.includes("compact") || normBody.includes("city") || normFuel.includes("elektro")) {
       score += 2;
     } else {
       score += 1;
     }
+    if (normFuel.includes("elektro") || normFuel.includes("hybrid")) score += 1;
   }
-  if (useCases.some((u) => ["langstrecke"].includes(u))) {
+  if (useCases.some((u) => ["langstrecke"].includes(u)) || carProfile.usage_pattern === "long_distance") {
     if (normBody.includes("kombi") || normBody.includes("wagon") || normBody.includes("touring") || normBody.includes("suv")) {
       score += 2;
     }
-    if (normFuel.includes("diesel") || normFuel.includes("hybrid")) score += 1;
+    if (normFuel.includes("diesel") || normFuel.includes("hybrid")) score += 1.5;
   }
+
+  if (carProfile.size_preference === "suv" && normBody.includes("suv")) score += 3;
+  if (carProfile.size_preference === "compact" && (normBody.includes("compact") || normBody.includes("hatch") || normBody.includes("kompakt"))) score += 2;
+  if (carProfile.size_preference === "small" && (normBody.includes("klein") || normBody.includes("city") || normBody.includes("compact"))) score += 2;
+  if (carProfile.size_preference === "midsize" && (normBody.includes("kombi") || normBody.includes("wagon") || normBody.includes("touring"))) score += 2;
+  if (carProfile.size_preference === "van" && normBody.includes("van")) score += 2;
+
+  if (carProfile.risk_profile === "conservative" && normFuel.includes("elektro")) score -= 0.5;
+  if (carProfile.budget_level === "low" && (spec.enginePowerKw || 0) > 180) score -= 0.5;
 
   return score;
 };
@@ -161,6 +176,10 @@ const loadCatalogEntities = (preferenceState?: PreferenceConstraintStateData, ma
       image: spec.image,
       link: spec.url,
       brand: spec.brand,
+      bodyType: spec.bodyType || "",
+      fuel: spec.fuel || "",
+      drivetrain: spec.drivetrain || "",
+      power: spec.enginePowerKw || 0,
       _score: scoreSpec(spec, preferenceState),
     }))
     .sort((a, b) => (b._score || 0) - (a._score || 0));
@@ -168,27 +187,99 @@ const loadCatalogEntities = (preferenceState?: PreferenceConstraintStateData, ma
   return ranked.slice(0, max).map(({ _score, ...rest }) => rest);
 };
 
-const buildOffersFromEntities = (entities: Record<string, unknown>[]) => {
+const buildOfferNarrative = (entity: Record<string, unknown>, profile: ReturnType<typeof defaultCarProfile>) => {
+  const reasons: string[] = [];
+  const tags = Array.isArray((entity as any).attributes) ? ((entity as any).attributes as string[]).filter(Boolean) : [];
+  const body = normalize((entity as any).bodyType || (entity as any).category);
+  const fuel = normalize((entity as any).fuel);
+  const brand = String((entity as any).brand || (entity as any).title || "").split(" ")[0] || "";
+  const normBrand = normalize(brand);
+  const isHiddenGem = ["dacia", "skoda", "kia", "hyundai", "mazda", "seat"].includes(normBrand);
+
+  if (profile.usage_pattern === "city") {
+    if (fuel.includes("elektro") || fuel.includes("hybrid")) {
+      reasons.push("Leise und sparsam in der Stadt.");
+    } else {
+      reasons.push("Handlich im Stadtverkehr, leicht zu parken.");
+    }
+  }
+  if (profile.usage_pattern === "long_distance") {
+    reasons.push("Läuft entspannt auf der Autobahn.");
+    if (fuel.includes("diesel") || fuel.includes("hybrid")) reasons.push("Auf Strecke meist sparsam im Verbrauch.");
+  }
+
+  if (profile.size_preference !== "no_preference" && body) {
+    reasons.push(`Passt zu deinem Wunsch nach ${profile.size_preference}.`);
+  }
+
+  if (profile.budget_level === "low") reasons.push("Gilt als bezahlbar im Unterhalt.");
+  if (profile.budget_level === "high") reasons.push("Fühlt sich hochwertig an, mit Reserven.");
+
+  if (profile.design_vibe.includes("sportlich")) reasons.push("Wirkt sportlich, ohne protzig zu sein.");
+  if (profile.design_vibe.includes("unauffällig")) reasons.push("Unaufgeregter Auftritt, fällt nicht negativ auf.");
+
+  if (profile.comfort_importance === "high") reasons.push("Bekannt für bequeme Sitze und ruhiges Fahren.");
+  if (profile.tech_importance === "high") reasons.push("Ordentliche Assistenzsysteme und Infotainment.");
+
+  if (profile.explicit_brands_likes.map(normalize).includes(normBrand)) {
+    reasons.push(`Marke, die du magst (${brand}).`);
+  }
+
+  const uniqueReasons = Array.from(new Set(reasons)).filter(Boolean);
+  while (uniqueReasons.length < 2) {
+    uniqueReasons.push("Solider Alltagsbegleiter ohne Starallüren.");
+  }
+
+  let caution = "";
+  const hasNoSuv = (profile.deal_breakers || []).some((b) => b.toLowerCase().includes("kein suv"));
+  const hasNoDiesel = (profile.deal_breakers || []).some((b) => b.toLowerCase().includes("kein diesel"));
+  if (hasNoSuv && body.includes("suv")) caution = "Falls du kein SUV wolltest: Dieses Modell ist höher gebaut.";
+  if (!caution && hasNoDiesel && fuel.includes("diesel")) caution = "Hat einen Diesel – nur falls das für dich ok ist.";
+  if (!caution && profile.risk_profile === "conservative" && fuel.includes("elektro")) {
+    caution = "Elektroantrieb – spannend, aber nur wenn Laden für dich passt.";
+  }
+
+  return {
+    summary: `${brand} ${String((entity as any).model || "")}`.trim() || "Allrounder",
+    reasons: uniqueReasons.slice(0, 3),
+    caution,
+    tags,
+    isHiddenGem,
+    tip: isHiddenGem ? "Geheimtipp: oft unterschätzt, aber robust im Alltag." : "",
+  };
+};
+
+const buildOffersFromEntities = (entities: Record<string, unknown>[], preferenceState?: PreferenceConstraintStateData) => {
+  const profile = preferenceState?.carProfile || defaultCarProfile();
   const seen = new Set<string>();
   return entities
-    .map((m) => ({
-      title: String(m.title || "Ergebnis"),
-      model: String(m.title || "Ergebnis"),
-      price: 0,
-      dealer: "Katalog",
-      link: String((m as any).link || ""),
-      image_url: "", // vermeiden externer Broken-Images, wir bleiben text-first
-      location: "",
-      mileage: "",
-      badge: Array.isArray(m.attributes) ? (m.attributes as string[]).filter(Boolean).join(" • ") : "",
-      created_at: new Date().toISOString(),
-      vin: String(m.id || ""),
-      isOffroadRelevant: Boolean((m as any).category && normalize((m as any).category).includes("suv")),
-      isExactMatchToSuggestion: true,
-      relevanceScore: 1,
-      source: "spec-catalog",
-      fallbackReason: "",
-    }))
+    .map((m) => {
+      const narrative = buildOfferNarrative(m, profile);
+      return {
+        title: String(m.title || "Ergebnis"),
+        model: String(m.title || "Ergebnis"),
+        price: 0,
+        dealer: "Katalog",
+        link: String((m as any).link || ""),
+        image_url: String((m as any).image || ""),
+        location: "",
+        mileage: "",
+        badge: Array.isArray(m.attributes) ? (m.attributes as string[]).filter(Boolean).join(" • ") : "",
+        created_at: new Date().toISOString(),
+        vin: String(m.id || ""),
+        isOffroadRelevant: Boolean((m as any).category && normalize((m as any).category).includes("suv")),
+        isExactMatchToSuggestion: true,
+        relevanceScore: 1,
+        source: "spec-catalog",
+        fallbackReason: "",
+        why: narrative.summary,
+        fit_reasons: narrative.reasons,
+        caution: narrative.caution,
+        tip: narrative.tip,
+        tags: narrative.tags,
+        is_hidden_gem: narrative.isHiddenGem,
+      };
+    })
     .filter((offer) => {
       const key = `${offer.model.toLowerCase()}|${offer.badge.toLowerCase()}`;
       if (seen.has(key)) return false;
@@ -355,18 +446,18 @@ const composeReply = ({
   let base = "";
   if (content_state.repeat_with_changed_constraints) {
     base = pick([
-      "Gleiche Treffer trotz neuer Filter – wollen wir die Kriterien ändern?",
-      "Neue Filter, gleiche Ergebnisse. Sollen wir enger oder breiter filtern?",
+      "Gleiche Treffer trotz neuer Hinweise – lass uns eine andere Richtung testen.",
+      "Neue Wünsche, ähnliche Liste. Sollen wir enger filtern oder bewusst was anderes probieren?",
     ]);
   } else if (!content_state.has_results || content_state.no_relevant_results) {
     base = pick([
-      "Noch nichts Passendes. Lass uns die Kriterien kurz schärfen.",
-      "Keine Treffer bisher. Zwei schnelle Fragen, dann bessere Vorschläge.",
+      "Noch nichts Passendes. Erzähl kurz Alltag und Budget, dann leg ich passende Modelle hin.",
+      "Keine Treffer bisher. Zwei schnelle Hinweise reichen, dann hab ich was für dich.",
     ]);
   } else {
     base = pick([
-      `Ich habe ${content_state.num_results} Optionen vorbereitet.`,
-      `${content_state.num_results} Optionen liegen bereit.`,
+      `Hab dir ${content_state.num_results} Modelle hingelegt – locker zum Durchscrollen.`,
+      `${content_state.num_results} Modelle warten rechts, ohne Verkaufsdruck.`,
     ]);
   }
 
@@ -381,9 +472,9 @@ const composeReply = ({
   let followUp =
     content_state.has_results && !content_state.clarification_required
       ? pick([
-          "Willst du Budget oder Marke einschränken?",
-          "Soll ich nach Preis oder Marke filtern?",
-          "Sollen wir nach Budget oder nach Marken sortieren?",
+          "Soll ich eher günstig bleiben oder nach Marke sortieren?",
+          "Willst du Preisrahmen oder Marken einschränken?",
+          "Sollen wir Budget reinschreiben oder bestimmte Marken ausklammern?",
         ])
       : uiHealth.render_text_only
         ? "Visuelle Elemente reduziere ich, bis die UI stabil ist."
@@ -552,11 +643,11 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       entities_considered: entities.length,
       appliedPreferences: updatedPreferenceState?.product,
     };
-    let offers = planMeta.allowOffers ? buildOffersFromEntities(entities) : [];
+    let offers = planMeta.allowOffers ? buildOffersFromEntities(entities, updatedPreferenceState) : [];
 
     if (planMeta.allowOffers && offers.length === 0) {
-      const fallbackEntities = loadCatalogEntities(undefined, 8);
-      offers = buildOffersFromEntities(fallbackEntities);
+      const fallbackEntities = loadCatalogEntities(updatedPreferenceState, 8);
+      offers = buildOffersFromEntities(fallbackEntities, updatedPreferenceState);
       offersMeta = { ...offersMeta, fallbackUsed: true, source: "catalog-fallback", entities_considered: fallbackEntities.length };
     }
     const negativeIntent = [(state.intent as any)?.intent].some((i) => [INTENT_TYPES.FEEDBACK_NEGATIVE, INTENT_TYPES.FRUSTRATION].includes(i as any));
@@ -697,6 +788,7 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       product: { preferredCategories: [], excludedCategories: [], preferredAttributes: [], excludedAttributes: [], useCases: [] },
       conversation: {},
       style: {},
+      carProfile: defaultCarProfile(),
     };
     const planHint = state.conversationPlan as string | undefined;
     const reflectionSummary = loadReflectionSummary();
@@ -734,6 +826,7 @@ export const buildGraph = (collector?: SessionTraceCollector) => {
       offers,
       visuals,
       definition: "Generische Übersicht",
+      user_profile: preferenceState?.carProfile || defaultCarProfile(),
     };
 
     const offersHistory = updateOffersHistory(offers, state.intent as any, preferenceState, new OffersHistory(state.offersHistory as any));

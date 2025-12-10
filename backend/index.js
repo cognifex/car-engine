@@ -238,6 +238,14 @@ app.get('/api/hot-offers', async (req, res) => {
       ].filter(Boolean).join(" • "),
       created_at: new Date().toISOString(),
       vin: "",
+      why: spec.bodyType ? `${spec.bodyType} aus dem Katalog – zum Warmwerden.` : "Katalog-Vorschlag zum Einstieg.",
+      fit_reasons: ["Preview aus der Auto-Datenbank", "Wird gleich von der Konversation überschrieben"],
+      tip: ["dacia", "skoda", "kia", "hyundai", "mazda", "seat"].includes(String(spec.brand || "").toLowerCase())
+        ? "Geheimtipp-Marke, oft unterschätzt."
+        : "",
+      caution: "",
+      tags: [spec.bodyType, spec.fuel, spec.transmission].filter(Boolean),
+      is_hidden_gem: ["dacia", "skoda", "kia", "hyundai", "mazda", "seat"].includes(String(spec.brand || "").toLowerCase()),
     }));
     res.json({ offers: mapped.slice(0, 3) });
   } catch (err) {

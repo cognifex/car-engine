@@ -105,6 +105,20 @@ export const routeSchema = z.object({
 });
 export type RouteDecision = z.infer<typeof routeSchema>;
 
+export const userCarProfileSchema = z.object({
+  budget_level: z.enum(["low", "medium", "high", "flexible"]).default("flexible"),
+  usage_pattern: z.enum(["city", "mixed", "long_distance"]).default("mixed"),
+  size_preference: z.enum(["small", "compact", "midsize", "suv", "van", "no_preference"]).default("no_preference"),
+  design_vibe: z.array(z.string()).default([]),
+  comfort_importance: z.enum(["low", "medium", "high"]).default("medium"),
+  tech_importance: z.enum(["low", "medium", "high"]).default("medium"),
+  risk_profile: z.enum(["conservative", "balanced", "adventurous"]).default("balanced"),
+  explicit_brands_likes: z.array(z.string()).default([]),
+  explicit_brands_dislikes: z.array(z.string()).default([]),
+  deal_breakers: z.array(z.string()).default([]),
+});
+export type UserCarProfile = z.infer<typeof userCarProfileSchema>;
+
 export const perfectProfileSchema = z.object({
   budget: z.string().default(""),
   usage: z.string().default(""),
@@ -141,6 +155,12 @@ export const OfferType = z.object({
   relevanceScore: z.number().default(0),
   source: z.string().default(""),
   fallbackReason: z.string().default(""),
+  why: z.string().default(""),
+  fit_reasons: z.array(z.string()).default([]),
+  caution: z.string().default(""),
+  tip: z.string().default(""),
+  tags: z.array(z.string()).default([]),
+  is_hidden_gem: z.boolean().default(false),
 });
 export type Offer = z.infer<typeof OfferType>;
 
@@ -154,6 +174,7 @@ export const contentSchema = z.object({
   definition: z.string().default(""),
   matches: matchSchema.optional(),
   profile: perfectProfileSchema.optional(),
+  user_profile: userCarProfileSchema.optional(),
   offerDiagnostics: z
     .object({
       queryModels: z.array(z.string()).default([]),
@@ -256,4 +277,5 @@ export interface ConversationState extends Record<string, unknown> {
   lastReply?: string;
   plan?: PlanStep[];
   evaluation?: TurnEvaluation;
+  carProfile?: UserCarProfile;
 }

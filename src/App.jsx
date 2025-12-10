@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, RefreshCw, Maximize2, Eye, WifiOff } from 'lucide-react';
+import { Send, Heart, Sparkles } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { buildSnapshot, evaluateUiState, DEFAULT_UI_FLAGS } from './uiState';
 import { UIFiniteStateMachine, UI_MODES, deriveMode } from './uiFsm';
@@ -19,6 +19,82 @@ const MOCK_CARS = {
     { id: 6, name: "Mazda CX-5", price: "14.500 €", img: "🚙", tag: "VB" },
     { id: 7, name: "Ford Kuga", price: "16.200 €", img: "🚙", tag: "1. Hand" },
   ]
+};
+
+const FAVORITES_KEY = 'dfapp:favorites';
+
+const DEFAULT_PROFILE = {
+  budget_level: "flexible",
+  usage_pattern: "mixed",
+  size_preference: "no_preference",
+  design_vibe: [],
+  comfort_importance: "medium",
+  tech_importance: "medium",
+  risk_profile: "balanced",
+  explicit_brands_likes: [],
+  explicit_brands_dislikes: [],
+  deal_breakers: [],
+};
+
+const getOfferId = (offer = {}) => {
+  const raw = offer.id || offer.vin || offer.model || offer.title || "";
+  if (raw) return String(raw);
+  const badge = offer.badge ? `-${offer.badge}` : "";
+  return `offer-${(offer.model || offer.title || "id")}${badge}`.replace(/\s+/g, "-").toLowerCase();
+};
+
+const normalizeOfferForUi = (offer = {}) => ({
+  ...offer,
+  id: getOfferId(offer),
+});
+
+const profileToBadges = (profile) => {
+  if (!profile) return { chips: [], breakers: [] };
+  const chips = [];
+  const breakers = [];
+  const budgetLabels = { low: "Budget-freundlich", medium: "mittleres Budget", high: "bereit zu investieren", flexible: "" };
+  const usageLabels = { city: "Stadt", mixed: "Mix", long_distance: "Langstrecke" };
+  const sizeLabels = { small: "Kleinwagen", compact: "Kompakt", midsize: "Kombi", suv: "SUV", van: "Van", no_preference: "" };
+
+  if (profile.budget_level && profile.budget_level !== DEFAULT_PROFILE.budget_level) {
+    chips.push(`Budget: ${budgetLabels[profile.budget_level] || profile.budget_level}`);
+  }
+  if (profile.usage_pattern && profile.usage_pattern !== DEFAULT_PROFILE.usage_pattern) {
+    chips.push(`Nutzung: ${usageLabels[profile.usage_pattern] || profile.usage_pattern}`);
+  }
+  if (profile.size_preference && profile.size_preference !== DEFAULT_PROFILE.size_preference) {
+    chips.push(`Größe: ${sizeLabels[profile.size_preference] || profile.size_preference}`);
+  }
+  if (Array.isArray(profile.design_vibe) && profile.design_vibe.length > 0) {
+    chips.push(`Vibe: ${profile.design_vibe.slice(0, 2).join(", ")}`);
+  }
+  if (profile.comfort_importance === "high") chips.push("Mag Komfort");
+  if (profile.tech_importance === "high") chips.push("Tech-affin");
+  if (profile.risk_profile === "conservative") chips.push("Risiko: vorsichtig");
+  if (Array.isArray(profile.explicit_brands_likes) && profile.explicit_brands_likes.length > 0) {
+    chips.push(`Mag ${profile.explicit_brands_likes.slice(0, 2).join(", ")}`);
+  }
+  if (Array.isArray(profile.explicit_brands_dislikes) && profile.explicit_brands_dislikes.length > 0) {
+    breakers.push(`Meidet ${profile.explicit_brands_dislikes.slice(0, 2).join(", ")}`);
+  }
+  if (Array.isArray(profile.deal_breakers) && profile.deal_breakers.length > 0) {
+    breakers.push(profile.deal_breakers.slice(0, 2).join(", "));
+  }
+
+  return { chips, breakers };
+};
+
+const isDefaultProfile = (profile) => {
+  if (!profile) return true;
+  return (
+    profile.budget_level === DEFAULT_PROFILE.budget_level &&
+    profile.usage_pattern === DEFAULT_PROFILE.usage_pattern &&
+    profile.size_preference === DEFAULT_PROFILE.size_preference &&
+    (profile.design_vibe || []).length === 0 &&
+    (profile.explicit_brands_likes || []).length === 0 &&
+    (profile.explicit_brands_dislikes || []).length === 0 &&
+    (profile.deal_breakers || []).length === 0
+  );
 };
 
 /*
@@ -56,53 +132,87 @@ Component: OfferCard
 - Breakpoints & Layout: sm one-column, md two-column grid via parent; card adapts width fluidly.
 - Performance: lightweight card, lazy image fallback via onError, avoids heavy nesting.
 */
-const OfferCard = ({ offer, onImageError, renderTextOnly }) => (
+const OfferCard = ({ offer, onImageError, renderTextOnly, onToggleFavorite, isFavorite }) => (
   <motion.div
     layout
-    initial={{ opacity: 0, scale: 0.9 }}
+    initial={{ opacity: 0, scale: 0.95 }}
     animate={{ opacity: 1, scale: 1 }}
     className="bg-white p-3 rounded-xl shadow-sm border border-gray-200 flex flex-col gap-2"
   >
-    {!renderTextOnly && (
-      <div className="h-32 bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-600 overflow-hidden">
-        {offer.image_url ? (
-          <img
-            src={offer.image_url}
-            alt={offer.title || "Fahrzeug"}
-            className="object-cover h-full w-full rounded"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = "";
-              onImageError?.(offer);
+    <div className="flex gap-3">
+      {!renderTextOnly && (
+        <div className="h-24 w-28 bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-600 overflow-hidden">
+          {offer.image_url ? (
+            <img
+              src={offer.image_url}
+              alt={offer.title || "Fahrzeug"}
+              className="object-cover h-full w-full rounded"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = "";
+                onImageError?.(offer);
+              }}
+            />
+          ) : (
+            <div className="h-full w-full bg-gray-200 flex items-center justify-center text-xs text-gray-500">
+              Bild folgt
+            </div>
+          )}
+        </div>
+      )}
+      <div className="flex-1 min-w-0 space-y-1">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-bold text-sm leading-tight line-clamp-2 text-gray-900">{offer.title || offer.model}</h3>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleFavorite?.(offer);
             }}
-          />
-        ) : (
-          <div className="h-full w-full bg-gray-200 flex items-center justify-center text-xs text-gray-500">
-            Bild nicht verfügbar
-          </div>
-        )}
+            aria-label="Favorisieren"
+            className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition"
+          >
+            <Heart size={16} className={isFavorite ? "text-red-500 fill-red-500" : "text-gray-300"} />
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-600">
+          {offer.dealer && <span className="font-medium text-gray-700">{offer.dealer}</span>}
+          {offer.badge && <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">{offer.badge}</span>}
+          {offer.is_hidden_gem && (
+            <span className="px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full inline-flex items-center gap-1">
+              <Sparkles size={12} /> Geheimtipp
+            </span>
+          )}
+        </div>
+        {offer.why && <p className="text-xs text-gray-800 line-clamp-2">{offer.why}</p>}
       </div>
-    )}
-    <div className="flex justify-between items-center gap-2">
-      <h3 className="font-bold text-sm line-clamp-2 leading-tight">{offer.title || offer.model}</h3>
-      <span className="text-blue-600 font-bold text-xs bg-blue-50 px-2 py-1 rounded whitespace-nowrap">
-        {offer.price ? `${Number(offer.price).toLocaleString("de-DE")} €` : "-"}
-      </span>
     </div>
-    <div className="text-xs text-gray-600 line-clamp-2">
-      {offer.dealer} {offer.location ? `• ${offer.location}` : ""}
-    </div>
-    {offer.mileage && (
-      <div className="text-[11px] text-gray-500">Kilometerstand: {offer.mileage}</div>
+
+    {Array.isArray(offer.fit_reasons) && offer.fit_reasons.length > 0 && (
+      <ul className="text-[12px] text-gray-700 list-disc pl-4 space-y-1">
+        {offer.fit_reasons.slice(0, 3).map((reason, idx) => (
+          <li key={idx} className="leading-snug">{reason}</li>
+        ))}
+      </ul>
     )}
-    {offer.badge && <div className="text-[11px] text-blue-700 bg-blue-50 px-2 py-1 rounded w-fit">{offer.badge}</div>}
-    {offer.link && <a href={offer.link} target="_blank" rel="noreferrer" className="text-blue-600 text-xs underline">Zum Angebot</a>}
+    {offer.tip && <div className="text-[11px] text-blue-800 bg-blue-50 border border-blue-100 px-2 py-1 rounded">{offer.tip}</div>}
+    {offer.caution && <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-100 px-2 py-1 rounded">{offer.caution}</div>}
+
+    <div className="flex items-center justify-between text-[11px] text-gray-600">
+      <div className="flex flex-wrap gap-1">
+        {Array.isArray(offer.tags) && offer.tags.slice(0, 3).map((tag, idx) => (
+          <span key={idx} className="px-2 py-0.5 bg-gray-100 border border-gray-200 rounded-full">{tag}</span>
+        ))}
+      </div>
+      {offer.link && <a href={offer.link} target="_blank" rel="noreferrer" className="text-blue-600 underline">Modell öffnen</a>}
+    </div>
   </motion.div>
 );
 
 export default function AutoMatchPrototype() {
   const [messages, setMessages] = useState([]);
   const [offers, setOffers] = useState([]);
+  const [favorites, setFavorites] = useState([]);
   const [offersHistory, setOffersHistory] = useState([]);
   const [visuals, setVisuals] = useState([]);
   const [activeSection, setActiveSection] = useState('chat');
@@ -117,6 +227,7 @@ export default function AutoMatchPrototype() {
   const [uiState, setUiState] = useState(DEFAULT_UI_FLAGS);
   const [uiHealth, setUiHealth] = useState({});
   const [uiMode, setUiMode] = useState(UI_MODES.NORMAL);
+  const [userProfile, setUserProfile] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const chatScrollRef = useRef(null);
@@ -134,6 +245,20 @@ export default function AutoMatchPrototype() {
       .trim()
   );
 
+  const normalizeOfferList = (list = []) => list.map((item) => normalizeOfferForUi(item));
+  const isFavorite = (offer) => favorites.some((fav) => fav.id === getOfferId(offer));
+  const toggleFavorite = (offer) => {
+    const normalized = normalizeOfferForUi(offer);
+    setFavorites((prev) => {
+      const exists = prev.find((f) => f.id === normalized.id);
+      if (exists) {
+        return prev.filter((f) => f.id !== normalized.id);
+      }
+      const next = [{ ...normalized, addedAt: new Date().toISOString() }, ...prev];
+      return next.slice(0, 50);
+    });
+  };
+
   const botSay = (text, delay = 500) => {
     setTimeout(() => {
       setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text, ts: new Date().toISOString() }]);
@@ -145,7 +270,7 @@ export default function AutoMatchPrototype() {
     // Only send if chat is empty, to prevent duplicates during hot reloads or in Strict Mode.
     if (messages.length === 0) { 
       const timer1 = setTimeout(() => {
-        setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: "Na, brauchst du ein neues Auto?", ts: new Date().toISOString() }]);
+        setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: "Erzähl mal, was du so mit deinem Auto vorhast.", ts: new Date().toISOString() }]);
       }, 300);
 
       // Cleanup timers on unmount or re-run to prevent memory leaks and duplicate messages.
@@ -155,6 +280,38 @@ export default function AutoMatchPrototype() {
     }
   }, []); // Empty dependency array ensures this runs only once on initial mount.
 
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(FAVORITES_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          setFavorites(parsed.map((item) => normalizeOfferForUi(item)));
+        }
+      }
+    } catch {
+      // ignore localStorage errors
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+    } catch {
+      // ignore write errors
+    }
+  }, [favorites]);
+
+  useEffect(() => {
+    if (!offers.length) return;
+    setFavorites((prev) =>
+      prev.map((fav) => {
+        const updated = offers.find((o) => o.id === fav.id);
+        return updated ? { ...fav, ...updated } : fav;
+      }),
+    );
+  }, [offers]);
+
   // Initial hot offers load
   useEffect(() => {
     const loadHot = async () => {
@@ -163,7 +320,7 @@ export default function AutoMatchPrototype() {
         const res = await fetch('/api/hot-offers');
         if (!res.ok) return;
         const data = await res.json();
-      const offersSafe = data.offers || [];
+      const offersSafe = normalizeOfferList(data.offers || []);
       setOffers(offersSafe);
       if (offersSafe.length > 0) {
         setOffersHistory(prev => [...prev, { at: new Date().toISOString(), offers: offersSafe }]);
@@ -460,11 +617,14 @@ export default function AutoMatchPrototype() {
           : m)
       );
 
-      const offersSafe = data.content?.offers || [];
+      const offersSafe = normalizeOfferList(data.content?.offers || []);
       if (offersSafe.length > 0) {
         setOffers(offersSafe);
         setOffersHistory(prev => [...prev, { at: new Date().toISOString(), offers: offersSafe }]);
         setOffersUpdatedAt(new Date().toISOString());
+      }
+      if (data.content?.user_profile) {
+        setUserProfile(data.content.user_profile);
       }
       setVisuals(data.content?.visuals || []);
 
@@ -518,6 +678,8 @@ export default function AutoMatchPrototype() {
   const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
   const renderTextOnly = uiRecovery.renderTextOnly || Boolean(uiHealth.render_text_only);
   const showUiBanner = uiRecovery.showBanner || Boolean(uiHealth.show_banner) || isDegradedUi || uiIssueDetected;
+  const profileBadges = profileToBadges(userProfile);
+  const showProfileCard = !isDefaultProfile(userProfile) && (profileBadges.chips.length > 0 || profileBadges.breakers.length > 0);
 
   const handleUiRecovery = (action) => {
     if (action === 'reload') {
@@ -542,10 +704,10 @@ export default function AutoMatchPrototype() {
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">A</div>
+            <div className="h-10 w-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-lg">F</div>
             <div>
-              <div className="text-base font-semibold text-gray-900">AutoMatch AI</div>
-              <div className="text-[12px] text-gray-500">Mobile-first Assistent für Fahrzeugsuche</div>
+              <div className="text-base font-semibold text-gray-900">diefreundliche.app</div>
+              <div className="text-[12px] text-gray-500">Locker-hilfreicher Auto-Buddy</div>
             </div>
           </div>
           <div className="hidden md:flex items-center gap-2 text-[12px] text-gray-500">
@@ -586,7 +748,7 @@ export default function AutoMatchPrototype() {
                 ref={inputRef}
                 type="text"
                 className="flex-1 bg-transparent px-2 py-2 text-sm focus:outline-none"
-                placeholder="Deine Nachricht..."
+                placeholder="Erzähl von Alltag, Budget oder Marken – ich höre zu."
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={handleKeyPress}
@@ -606,9 +768,9 @@ export default function AutoMatchPrototype() {
           </div>
         </section>
 
-        {/* Offers & Logs */}
-        <section className={`${activeSection !== 'offers' ? 'hidden md:flex' : 'flex'} flex-col gap-3`}>
-          <div ref={offersRef} className="rounded-2xl bg-white border border-gray-100 shadow-sm p-4">
+        {/* Offers, Favorites & Logs */}
+        <section className={`${!['offers', 'favorites', 'logs'].includes(activeSection) ? 'hidden md:flex' : 'flex'} flex-col gap-3`}>
+          <div ref={offersRef} className={`${activeSection !== 'offers' ? 'hidden md:block' : 'block'} rounded-2xl bg-white border border-gray-100 shadow-sm p-4`}>
             <div className="flex items-center justify-between mb-2">
               <div>
                 <h2 className="text-base font-semibold text-gray-900">Live-Angebote</h2>
@@ -630,11 +792,39 @@ export default function AutoMatchPrototype() {
               </div>
             )}
 
+            {showProfileCard && (
+              <div className="mb-3 p-3 rounded-lg border border-blue-100 bg-blue-50/70 text-sm text-blue-900 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-blue-900">Deine Auto-Vibes</span>
+                  <span className="text-[11px] text-blue-700">baut sich automatisch</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {profileBadges.chips.map((chip, idx) => (
+                    <span key={idx} className="px-2 py-1 bg-white border border-blue-100 rounded-full text-[11px] text-blue-900">
+                      {chip}
+                    </span>
+                  ))}
+                </div>
+                {profileBadges.breakers.length > 0 && (
+                  <div className="text-[11px] text-amber-800">
+                    Dealbreaker: {profileBadges.breakers.join(" • ")}
+                  </div>
+                )}
+              </div>
+            )}
+
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <AnimatePresence>
-                  {offers.map((offer, idx) => (
-                    <OfferCard key={idx} offer={offer} onImageError={handleImageError} renderTextOnly={renderTextOnly} />
+                  {offers.map((offer) => (
+                    <OfferCard
+                      key={offer.id || offer.vin || offer.model}
+                      offer={offer}
+                      onImageError={handleImageError}
+                      renderTextOnly={renderTextOnly}
+                      onToggleFavorite={toggleFavorite}
+                      isFavorite={isFavorite(offer)}
+                    />
                   ))}
                 </AnimatePresence>
               </div>
@@ -656,6 +846,35 @@ export default function AutoMatchPrototype() {
                 </div>
               )}
             </>
+          </div>
+
+          <div className={`${activeSection !== 'favorites' ? 'hidden md:block' : 'block'} rounded-2xl bg-white border border-gray-100 shadow-sm p-4`}>
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900">Deine Favoriten</h2>
+                <p className="text-[12px] text-gray-500">Lokal gespeichert, ohne Login.</p>
+              </div>
+              <span className="px-2 py-1 rounded-full bg-gray-100 border text-gray-700 text-[12px]">{favorites.length} gespeichert</span>
+            </div>
+            {favorites.length === 0 && (
+              <div className="text-xs text-gray-500 bg-gray-50 border border-dashed border-gray-200 rounded-lg p-3">
+                Herz ein Modell, um es hier zu merken.
+              </div>
+            )}
+            {favorites.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {favorites.map((offer) => (
+                  <OfferCard
+                    key={offer.id || offer.vin || offer.model}
+                    offer={offer}
+                    onImageError={handleImageError}
+                    renderTextOnly={renderTextOnly}
+                    onToggleFavorite={toggleFavorite}
+                    isFavorite={true}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           <div className={`${activeSection !== 'logs' ? 'hidden md:block' : 'block'} rounded-2xl bg-white border border-gray-100 shadow-sm p-4`}>
@@ -706,6 +925,7 @@ export default function AutoMatchPrototype() {
         <div className="flex max-w-6xl mx-auto px-1 py-2">
           <SectionLabel id="chat" label="Chat" icon="💬" />
           <SectionLabel id="offers" label="Angebote" icon="🚗" />
+          <SectionLabel id="favorites" label="Favoriten" icon="⭐" />
           <SectionLabel id="logs" label="Logs" icon="📒" />
         </div>
       </nav>

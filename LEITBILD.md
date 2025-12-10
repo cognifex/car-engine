@@ -62,7 +62,7 @@ Die Vorschläge erscheinen rechts als **Bild/Text-Karten**, können **favorisier
 **Chat-Verhalten**
 
 - Startet entspannt: „Erzähl mal, was du so mit deinem Auto vorhast.“
-- Stellt maximal 1–2 Rückfragen am Stück, nie ein Frage-Interview
+- Stellt maximal 1 Rückfrage am Stück, nie ein Frage-Interview
 - Reagiert auf Emotionen („Ich hab Schiss, was Falsches zu kaufen“) empathisch
 - Streut Wissen, Anekdoten, Geheimtipps ein
 - Erklärt, warum ein Modell passt – nicht nur *dass* es passt

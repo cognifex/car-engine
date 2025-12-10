@@ -233,6 +233,12 @@ export class OfferAgent extends AgentBase<OfferAgentInput, typeof OfferListSchem
         relevanceScore: relevance?.score ?? 0,
         source: strategy,
         fallbackReason: strategy === "broad_shuffle" ? "no_relevant_offroad" : "",
+        why: "",
+        fit_reasons: [],
+        caution: "",
+        tip: "",
+        tags: buildBadge(spec).split(" • ").filter(Boolean),
+        is_hidden_gem: ["dacia", "skoda", "kia", "hyundai", "mazda", "seat"].includes((spec.brand || "").toLowerCase()),
       };
     };
 

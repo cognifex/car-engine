@@ -1,18 +1,6 @@
 [
   {
     "reason": "fallback_used",
-    "intent": "constraint_update",
-    "gatingReason": "needs_structured_requirement",
-    "timestamp": "2025-12-09T21:44:30.520Z"
-  },
-  {
-    "reason": "fallback_used",
-    "intent": "preference_change",
-    "gatingReason": "needs_structured_requirement",
-    "timestamp": "2025-12-09T21:44:30.572Z"
-  },
-  {
-    "reason": "fallback_used",
     "intent": "frustration",
     "gatingReason": "needs_structured_requirement",
     "timestamp": "2025-12-09T21:44:30.594Z"
@@ -226,5 +214,83 @@
     "intent": "feedback_negative",
     "gatingReason": "user_frustrated",
     "timestamp": "2025-12-09T22:50:28.564Z"
+  },
+  {
+    "reason": "repeat_with_changed_constraints",
+    "intent": "feedback_negative",
+    "timestamp": "2025-12-10T00:24:12.374Z"
+  },
+  {
+    "reason": "frustration",
+    "intent": "feedback_negative",
+    "gatingReason": "user_frustrated",
+    "timestamp": "2025-12-10T00:24:12.375Z"
+  },
+  {
+    "reason": "fallback_used",
+    "intent": "frustration",
+    "timestamp": "2025-12-10T00:24:12.407Z"
+  },
+  {
+    "reason": "frustration",
+    "intent": "frustration",
+    "gatingReason": "user_frustrated",
+    "timestamp": "2025-12-10T00:24:12.408Z"
+  },
+  {
+    "reason": "fallback_used",
+    "intent": "knowledge_signal",
+    "gatingReason": "needs_structured_requirement",
+    "timestamp": "2025-12-10T00:24:12.427Z"
+  },
+  {
+    "reason": "repeat_with_changed_constraints",
+    "intent": "feedback_negative",
+    "timestamp": "2025-12-10T00:24:14.162Z"
+  },
+  {
+    "reason": "frustration",
+    "intent": "feedback_negative",
+    "gatingReason": "user_frustrated",
+    "timestamp": "2025-12-10T00:24:14.162Z"
+  },
+  {
+    "reason": "repeat_with_changed_constraints",
+    "intent": "feedback_negative",
+    "timestamp": "2025-12-10T00:26:41.083Z"
+  },
+  {
+    "reason": "frustration",
+    "intent": "feedback_negative",
+    "gatingReason": "user_frustrated",
+    "timestamp": "2025-12-10T00:26:41.084Z"
+  },
+  {
+    "reason": "fallback_used",
+    "intent": "frustration",
+    "timestamp": "2025-12-10T00:26:41.115Z"
+  },
+  {
+    "reason": "frustration",
+    "intent": "frustration",
+    "gatingReason": "user_frustrated",
+    "timestamp": "2025-12-10T00:26:41.115Z"
+  },
+  {
+    "reason": "fallback_used",
+    "intent": "knowledge_signal",
+    "gatingReason": "needs_structured_requirement",
+    "timestamp": "2025-12-10T00:26:41.136Z"
+  },
+  {
+    "reason": "repeat_with_changed_constraints",
+    "intent": "feedback_negative",
+    "timestamp": "2025-12-10T00:26:42.279Z"
+  },
+  {
+    "reason": "frustration",
+    "intent": "feedback_negative",
+    "gatingReason": "user_frustrated",
+    "timestamp": "2025-12-10T00:26:42.279Z"
   }
 ]
