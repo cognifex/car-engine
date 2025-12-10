@@ -227,7 +227,7 @@ app.get('/api/hot-offers', async (req, res) => {
       price: 0,
       dealer: "Modell-Info",
       link: spec.url || "",
-      image_url: spec.image || "",
+      image_url: spec.image || "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=640&q=70&sat=-10",
       location: "",
       mileage: "",
       badge: [

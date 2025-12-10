@@ -22,6 +22,7 @@ const MOCK_CARS = {
 };
 
 const FAVORITES_KEY = 'dfapp:favorites';
+const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=640&q=70&sat=-10';
 
 const DEFAULT_PROFILE = {
   budget_level: "flexible",
@@ -46,6 +47,7 @@ const getOfferId = (offer = {}) => {
 const normalizeOfferForUi = (offer = {}) => ({
   ...offer,
   id: getOfferId(offer),
+  image_url: offer.image_url || FALLBACK_IMAGE,
 });
 
 const profileToBadges = (profile) => {
@@ -144,12 +146,12 @@ const OfferCard = ({ offer, onImageError, renderTextOnly, onToggleFavorite, isFa
         <div className="h-24 w-28 bg-gray-100 rounded-lg flex items-center justify-center text-sm text-gray-600 overflow-hidden">
           {offer.image_url ? (
             <img
-              src={offer.image_url}
+              src={offer.image_url || FALLBACK_IMAGE}
               alt={offer.title || "Fahrzeug"}
               className="object-cover h-full w-full rounded"
               onError={(e) => {
                 e.target.onerror = null;
-                e.target.src = "";
+                e.target.src = FALLBACK_IMAGE;
                 onImageError?.(offer);
               }}
             />
@@ -394,8 +396,11 @@ export default function AutoMatchPrototype() {
   };
 
   const handleImageError = (offer) => {
+    const id = getOfferId(offer);
     sendClientEvent('IMAGE_LOAD_FAILED', { model: offer?.model || offer?.title, imageUrl: offer?.image_url });
-    setUiRecovery((prev) => ({ ...prev, renderTextOnly: true, degradedMode: true, showBanner: true, reason: 'Bild konnte nicht geladen werden' }));
+    setOffers((prev) => prev.map((o) => (getOfferId(o) === id ? { ...o, image_url: FALLBACK_IMAGE } : o)));
+    setFavorites((prev) => prev.map((o) => (getOfferId(o) === id ? { ...o, image_url: FALLBACK_IMAGE } : o)));
+    setUiRecovery((prev) => ({ ...prev, showBanner: true, reason: 'Bild ersetzt durch Platzhalter' }));
   };
 
   const collectUiSnapshot = useCallback(() => {

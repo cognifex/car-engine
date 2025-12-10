@@ -84,6 +84,8 @@ const aggregateClientEvents = (events: ClientEvent[] = []): UIState => {
 };
 
 const normalize = (val?: string) => (val || "").toLowerCase();
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=640&q=70&sat=-10";
 
 const scoreSpec = (spec: ReturnType<typeof loadSpecs>[number], preferenceState?: PreferenceConstraintStateData) => {
   const product = preferenceState?.product || { preferredCategories: [], excludedCategories: [], useCases: [] };
@@ -173,7 +175,7 @@ const loadCatalogEntities = (preferenceState?: PreferenceConstraintStateData, ma
         spec.transmission,
         spec.enginePowerKw ? `${spec.enginePowerKw} kW` : "",
       ].filter(Boolean),
-      image: spec.image,
+      image: spec.image || FALLBACK_IMAGE,
       link: spec.url,
       brand: spec.brand,
       bodyType: spec.bodyType || "",
@@ -261,7 +263,7 @@ const buildOffersFromEntities = (entities: Record<string, unknown>[], preference
         price: 0,
         dealer: "Katalog",
         link: String((m as any).link || ""),
-        image_url: String((m as any).image || ""),
+        image_url: String((m as any).image || FALLBACK_IMAGE),
         location: "",
         mileage: "",
         badge: Array.isArray(m.attributes) ? (m.attributes as string[]).filter(Boolean).join(" • ") : "",

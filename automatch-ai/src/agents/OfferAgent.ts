@@ -8,6 +8,9 @@ import {
   PerfectProfile,
 } from "../utils/types.js";
 import { loadSpecs, SpecModel } from "../utils/specs.js";
+
+const FALLBACK_IMAGE =
+  "https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=640&q=70&sat=-10";
 import { getOffers } from "../utils/dataApi.js";
 
 export interface OfferAgentInput {
@@ -216,13 +219,14 @@ export class OfferAgent extends AgentBase<OfferAgentInput, typeof OfferListSchem
     const toOffer = (spec: SpecModel): Offer => {
       const fullModel = `${spec.brand} ${spec.model}`.trim();
       const relevance = sorted.find((r) => `${r.spec.brand} ${r.spec.model}`.trim() === fullModel);
+      const image = spec.image || FALLBACK_IMAGE;
       return {
         title: `${spec.brand} ${spec.model}${spec.year ? " (" + spec.year + ")" : ""}`,
         model: fullModel,
         price: 0,
         dealer: "Modell-Info",
         link: spec.url || "",
-        image_url: spec.image || "",
+        image_url: image,
         location: "",
         mileage: "",
         badge: buildBadge(spec),

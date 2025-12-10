@@ -1,47 +1,5 @@
 [
   {
-    "reason": "fallback_used",
-    "intent": "constraint_update",
-    "gatingReason": "needs_structured_requirement",
-    "timestamp": "2025-12-09T21:45:46.422Z"
-  },
-  {
-    "reason": "fallback_used",
-    "intent": "preference_change",
-    "gatingReason": "needs_structured_requirement",
-    "timestamp": "2025-12-09T21:45:46.444Z"
-  },
-  {
-    "reason": "fallback_used",
-    "intent": "preference_change",
-    "gatingReason": "needs_structured_requirement",
-    "timestamp": "2025-12-09T21:45:46.499Z"
-  },
-  {
-    "reason": "fallback_used",
-    "intent": "preference_change",
-    "gatingReason": "needs_structured_requirement",
-    "timestamp": "2025-12-09T21:45:46.507Z"
-  },
-  {
-    "reason": "repeat_with_changed_constraints",
-    "intent": "feedback_negative",
-    "gatingReason": "needs_structured_requirement",
-    "timestamp": "2025-12-09T21:45:46.531Z"
-  },
-  {
-    "reason": "frustration",
-    "intent": "feedback_negative",
-    "gatingReason": "user_frustrated",
-    "timestamp": "2025-12-09T21:45:46.531Z"
-  },
-  {
-    "reason": "fallback_used",
-    "intent": "frustration",
-    "gatingReason": "needs_structured_requirement",
-    "timestamp": "2025-12-09T21:45:46.535Z"
-  },
-  {
     "reason": "frustration",
     "intent": "frustration",
     "gatingReason": "user_frustrated",
@@ -289,5 +247,44 @@
     "intent": "feedback_negative",
     "gatingReason": "user_frustrated",
     "timestamp": "2025-12-10T00:50:29.584Z"
+  },
+  {
+    "reason": "repeat_with_changed_constraints",
+    "intent": "feedback_negative",
+    "timestamp": "2025-12-10T00:56:37.091Z"
+  },
+  {
+    "reason": "frustration",
+    "intent": "feedback_negative",
+    "gatingReason": "user_frustrated",
+    "timestamp": "2025-12-10T00:56:37.094Z"
+  },
+  {
+    "reason": "fallback_used",
+    "intent": "frustration",
+    "timestamp": "2025-12-10T00:56:37.127Z"
+  },
+  {
+    "reason": "frustration",
+    "intent": "frustration",
+    "gatingReason": "user_frustrated",
+    "timestamp": "2025-12-10T00:56:37.127Z"
+  },
+  {
+    "reason": "fallback_used",
+    "intent": "knowledge_signal",
+    "gatingReason": "needs_structured_requirement",
+    "timestamp": "2025-12-10T00:56:37.143Z"
+  },
+  {
+    "reason": "repeat_with_changed_constraints",
+    "intent": "feedback_negative",
+    "timestamp": "2025-12-10T00:56:38.270Z"
+  },
+  {
+    "reason": "frustration",
+    "intent": "feedback_negative",
+    "gatingReason": "user_frustrated",
+    "timestamp": "2025-12-10T00:56:38.270Z"
   }
 ]
