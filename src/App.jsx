@@ -23,6 +23,35 @@ const MOCK_CARS = {
 
 const FAVORITES_KEY = 'dfapp:favorites';
 const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1503736334956-4c8f8e92946d?auto=format&fit=crop&w=640&q=70&sat=-10';
+const FALLBACK_OFFERS = [
+  {
+    title: "Skoda Octavia Kombi",
+    model: "Skoda Octavia Kombi",
+    badge: "Kombi • Benzin",
+    dealer: "Beispiel",
+    image_url: FALLBACK_IMAGE,
+    fit_reasons: ["Solider Alltagsbegleiter", "Viel Platz für Familie + Hund"],
+    tip: "Robuste Wahl, oft günstiger als VW.",
+  },
+  {
+    title: "Toyota Yaris Hybrid",
+    model: "Toyota Yaris Hybrid",
+    badge: "Kleinwagen • Hybrid",
+    dealer: "Beispiel",
+    image_url: FALLBACK_IMAGE,
+    fit_reasons: ["Sparsam in der Stadt", "Zuverlässiger Hybrid"],
+    tip: "Gilt als pflegeleicht und sparsam.",
+  },
+  {
+    title: "Dacia Duster",
+    model: "Dacia Duster",
+    badge: "SUV • Benzin",
+    dealer: "Beispiel",
+    image_url: FALLBACK_IMAGE,
+    fit_reasons: ["Budget-freundliches SUV", "Robust, wenig Schnickschnack"],
+    tip: "Geheimtipp für pragmatische Käufer:innen.",
+  },
+];
 
 const DEFAULT_PROFILE = {
   budget_level: "flexible",
@@ -214,6 +243,7 @@ const OfferCard = ({ offer, onImageError, renderTextOnly, onToggleFavorite, isFa
 export default function AutoMatchPrototype() {
   const [messages, setMessages] = useState([]);
   const [offers, setOffers] = useState([]);
+  const [offersSource, setOffersSource] = useState('live');
   const [favorites, setFavorites] = useState([]);
   const [offersHistory, setOffersHistory] = useState([]);
   const [visuals, setVisuals] = useState([]);
@@ -320,18 +350,24 @@ export default function AutoMatchPrototype() {
       try {
         setOffersLoading(true);
         const res = await fetch('/api/hot-offers');
-        if (!res.ok) return;
+        if (!res.ok) throw new Error('hot offers failed');
         const data = await res.json();
-      const offersSafe = normalizeOfferList(data.offers || []);
-      setOffers(offersSafe);
-      if (offersSafe.length > 0) {
-        setOffersHistory(prev => [...prev, { at: new Date().toISOString(), offers: offersSafe }]);
-      }
-      setOffersUpdatedAt(new Date().toISOString());
-    } catch (err) {
-      console.error("Failed to load hot offers", err);
-    } finally {
-      setOffersLoading(false);
+        const offersSafe = normalizeOfferList(data.offers || []);
+        setOffers(offersSafe);
+        setOffersSource('live');
+        if (offersSafe.length > 0) {
+          setOffersHistory(prev => [...prev, { at: new Date().toISOString(), offers: offersSafe }]);
+        }
+        setOffersUpdatedAt(new Date().toISOString());
+      } catch (err) {
+        console.error("Failed to load hot offers", err);
+        const fallback = normalizeOfferList(FALLBACK_OFFERS);
+        setOffers(fallback);
+        setOffersSource('fallback');
+        setOffersUpdatedAt(new Date().toISOString());
+        setUiRecovery((prev) => ({ ...prev, showBanner: true, reason: 'Backend nicht erreichbar – nutze Beispielangebote' }));
+      } finally {
+        setOffersLoading(false);
       }
     };
     loadHot();
@@ -793,7 +829,10 @@ export default function AutoMatchPrototype() {
 
             {showUiBanner && (
               <div className="mb-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-sm">
-                Bilder oder Assets haken gerade. Ich bleibe bei Textdaten, bis alles stabil ist.{uiRecovery.reason ? ` (${uiRecovery.reason})` : ''}
+                {offersSource === 'fallback'
+                  ? 'Backend gerade nicht erreichbar – zeige Beispielangebote, Chat funktioniert trotzdem.'
+                  : 'Bilder oder Assets haken gerade. Ich bleibe bei Textdaten, bis alles stabil ist.'}
+                {uiRecovery.reason ? ` (${uiRecovery.reason})` : ''}
               </div>
             )}
 

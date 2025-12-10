@@ -5,6 +5,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch oder Tag, der deployt werden soll (Default: main)"
+        required: false
+        default: "main"
 
 jobs:
   deploy:
@@ -13,6 +19,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
 
       - name: Start SSH agent
         uses: webfactory/ssh-agent@v0.9.0
