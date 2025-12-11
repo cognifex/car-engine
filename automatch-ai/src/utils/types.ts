@@ -119,6 +119,25 @@ export const userCarProfileSchema = z.object({
 });
 export type UserCarProfile = z.infer<typeof userCarProfileSchema>;
 
+export const perfectProfileSchema = z.object({
+  budget: z.string().default(""),
+  usage: z.string().default(""),
+  passengers: z.string().default(""),
+  experience: z.string().default(""),
+  segmentPrefs: z.array(z.string()).default([]),
+  powertrainPrefs: z.array(z.string()).default([]),
+  constraints: z.array(z.string()).default([]),
+  knowledge_level: z.enum(["low", "medium", "high"]).default("medium"),
+  confidence: z.enum(["low", "medium", "high"]).default("medium"),
+  terrain: z.string().default(""),
+  drivetrain: z.string().default(""),
+  bodyTypePreference: z.string().default(""),
+  robustness: z.string().default(""),
+  use_case: z.string().default(""),
+  offroadPriority: z.boolean().default(false),
+});
+export type PerfectProfile = z.infer<typeof perfectProfileSchema>;
+
 export const OfferType = z.object({
   title: z.string(),
   model: z.string().default(""),
@@ -154,7 +173,7 @@ export const contentSchema = z.object({
   visuals: z.array(z.string()).default([]),
   definition: z.string().default(""),
   matches: matchSchema.optional(),
-  profile: userCarProfileSchema.optional(),
+  profile: perfectProfileSchema.optional(),
   user_profile: userCarProfileSchema.optional(),
   offerDiagnostics: z
     .object({
