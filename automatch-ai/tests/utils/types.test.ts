@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { profilingSchema, intentSchema, matchSchema, visualSchema, frontSchema, routeSchema, perfectProfileSchema } from "../../src/utils/types.js";
+import { profilingSchema, intentSchema, matchSchema, visualSchema, frontSchema, routeSchema, userCarProfileSchema } from "../../src/utils/types.js";
 
 const sampleProfiling = { knowledge_level: "medium", confidence: "low", tone: "casual" };
 const sampleIntent = { intent: "car_search", fields: [{ key: "budget", value: "15000" }] };
@@ -40,9 +40,20 @@ describe("types schemas", () => {
     expect(parsed.strictOffers).toBe(true);
   });
 
-  it("validates perfectProfile with offroad fields", () => {
-    const profile = perfectProfileSchema.parse({ budget: "", usage: "", passengers: "", experience: "", segmentPrefs: [], powertrainPrefs: [], constraints: [], knowledge_level: "low", confidence: "low", terrain: "schlechtweg", drivetrain: "4x4", bodyTypePreference: "SUV", robustness: "hoch", use_case: "gelände", offroadPriority: true });
-    expect(profile.offroadPriority).toBe(true);
-    expect(profile.drivetrain).toBe("4x4");
+  it("validates userCarProfile with budget and vibe fields", () => {
+    const profile = userCarProfileSchema.parse({
+      budget_level: "low",
+      usage_pattern: "city",
+      size_preference: "compact",
+      design_vibe: ["sportlich", "retro"],
+      comfort_importance: "medium",
+      tech_importance: "high",
+      risk_profile: "balanced",
+      explicit_brands_likes: ["mazda"],
+      explicit_brands_dislikes: ["diesel"],
+      deal_breakers: ["kein SUV"],
+    });
+    expect(profile.design_vibe).toContain("sportlich");
+    expect(profile.deal_breakers[0]).toBe("kein SUV");
   });
 });
